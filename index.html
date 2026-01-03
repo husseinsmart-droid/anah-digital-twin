@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
 <title>Anah Digital Twin</title>
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 <style>
 html, body {
@@ -12,28 +11,28 @@ html, body {
   padding: 0;
   height: 100%;
   overflow: hidden;
-  background: #f0f0f0;
-  font-family: sans-serif;
+  background: #f2f2f2;
+  font-family: Arial, sans-serif;
 }
 
-#msg {
+#status {
   position: fixed;
   top: 15px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0,0,0,.75);
+  background: rgba(0,0,0,0.75);
   color: #fff;
   padding: 8px 14px;
   border-radius: 6px;
-  font-size: 14px;
   z-index: 10;
+  font-size: 14px;
 }
 
 #reset {
   position: fixed;
   top: 15px;
   right: 15px;
-  padding: 8px 10px;
+  padding: 8px 12px;
   border: none;
   background: #0d6efd;
   color: #fff;
@@ -46,19 +45,19 @@ html, body {
 
 <body>
 
-<div id="msg">⏳ Loading model...</div>
-<button id="reset">⟳</button>
+<div id="status">⏳ Loading model…</div>
+<button id="reset">⟳ Reset</button>
 
 <script type="module">
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
-/* ========= Scene ========= */
+/* ===== Scene ===== */
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xf0f0f0);
+scene.background = new THREE.Color(0xf2f2f2);
 
-/* ========= Camera ========= */
+/* ===== Camera ===== */
 const camera = new THREE.PerspectiveCamera(
   45,
   window.innerWidth / window.innerHeight,
@@ -66,53 +65,51 @@ const camera = new THREE.PerspectiveCamera(
   50000
 );
 
-/* ========= Renderer ========= */
+/* ===== Renderer ===== */
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
 
-/* ========= Controls ========= */
+/* ===== Controls ===== */
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.06;
 controls.maxPolarAngle = Math.PI / 2.05;
 
-/* ========= Lights ========= */
+/* ===== Lights ===== */
 scene.add(new THREE.AmbientLight(0xffffff, 0.7));
 
 const sun = new THREE.DirectionalLight(0xffffff, 1.2);
-sun.position.set(800, 1000, 600);
+sun.position.set(1000, 1200, 800);
 sun.castShadow = true;
 scene.add(sun);
 
-/* ========= Ground ========= */
+/* ===== Ground ===== */
 const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(10000, 10000),
-  new THREE.MeshStandardMaterial({ color: 0xdad6cc })
+  new THREE.PlaneGeometry(20000, 20000),
+  new THREE.MeshStandardMaterial({ color: 0xdedede })
 );
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-/* ========= Load Model ========= */
+/* ===== Load Model ===== */
 const loader = new GLTFLoader();
-const status = document.getElementById("msg");
+const status = document.getElementById("status");
 
-let center = new THREE.Vector3();
-let size = 1;
-let model;
+let model, center, size;
 
 loader.load(
-  "/Anahcity2_0.glb",   // ✅ مسار مطلق
+  "/Anahcity2_0.glb",   // تأكد أن الاسم مطابق 100%
   (gltf) => {
     model = gltf.scene;
 
-    model.traverse(o => {
-      if (o.isMesh) {
-        o.castShadow = true;
-        o.receiveShadow = true;
+    model.traverse(obj => {
+      if (obj.isMesh) {
+        obj.castShadow = true;
+        obj.receiveShadow = true;
       }
     });
 
@@ -138,11 +135,11 @@ loader.load(
   undefined,
   (err) => {
     console.error(err);
-    status.innerHTML = "❌ Model failed to load<br>Check GLB file path";
+    status.innerHTML = "❌ Failed to load model<br>Check GLB path";
   }
 );
 
-/* ========= Reset ========= */
+/* ===== Reset ===== */
 document.getElementById("reset").onclick = () => {
   if (!model) return;
   controls.target.copy(center);
@@ -153,6 +150,21 @@ document.getElementById("reset").onclick = () => {
   controls.update();
 };
 
-/* ========= Resize ========= */
+/* ===== Resize ===== */
 window.addEventListener("resize", () => {
-  camera.aspect = window.i
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* ===== Animate ===== */
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+
+</body>
+</html>
