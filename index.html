@@ -1,39 +1,79 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
   <meta charset="utf-8" />
   <title>Anah Digital Twin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 
   <style>
-    :root{--bg:#eef1f5;--txt:#0f172a;--muted:#64748b;--brand:#1d4ed8;--shadow:0 14px 40px rgba(0,0,0,.12)}
+    :root{
+      --bg:#eef1f5; --card:#ffffff; --txt:#0f172a; --muted:#64748b;
+      --brand:#1d4ed8; --danger:#b00020; --shadow:0 14px 40px rgba(0,0,0,.12);
+    }
     html,body{margin:0;height:100%;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Arial}
     .wrap{position:fixed;inset:0;display:grid;grid-template-rows:auto 1fr auto;gap:12px;padding:14px}
-    .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,.86);
-      backdrop-filter:blur(10px);border:1px solid rgba(226,232,240,.9);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow)}
+    .topbar{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      background:rgba(255,255,255,.86);backdrop-filter:blur(10px);
+      border:1px solid rgba(226,232,240,.9);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow)
+    }
     .title{display:flex;flex-direction:column;gap:2px}
     .title b{font-size:14px;color:var(--txt)}
     .title span{font-size:12px;color:var(--muted)}
     .actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-    button{border:0;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:800;background:var(--brand);color:#fff;box-shadow:0 10px 26px rgba(29,78,216,.28)}
+    button{
+      border:0;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:800;
+      background:var(--brand);color:#fff;box-shadow:0 10px 26px rgba(29,78,216,.28)
+    }
     button.secondary{background:#0f172a;box-shadow:0 10px 26px rgba(15,23,42,.22)}
     button.ghost{background:#fff;color:var(--txt);border:1px solid #e2e8f0;box-shadow:none}
-    .stage{position:relative;overflow:hidden;border-radius:18px;border:1px solid rgba(226,232,240,.95);
-      background:radial-gradient(1200px 700px at 50% 15%, #ffffff 0%, #f3f6ff 38%, #eaf0ff 100%);box-shadow:var(--shadow)}
-    model-viewer{width:100%;height:100%;--progress-bar-color: rgba(29,78,216,.95);--poster-color: transparent;outline:none;touch-action:none;}
-    .hud{position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:20;display:flex;align-items:center;gap:10px;
-      background:rgba(0,0,0,.72);color:#fff;padding:10px 12px;border-radius:12px;max-width:92%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    .stage{
+      position:relative;overflow:hidden;border-radius:18px;border:1px solid rgba(226,232,240,.95);
+      background:
+        radial-gradient(1200px 600px at 65% 20%, rgba(255,255,255,.95), rgba(238,242,255,.95)),
+        linear-gradient(180deg,#f8fafc, #eef2ff);
+      box-shadow:var(--shadow)
+    }
+
+    model-viewer{
+      width:100%;height:100%;
+      --progress-bar-color: rgba(29,78,216,.95);
+      --poster-color: transparent;
+      background: transparent !important;
+    }
+
+    .hud{
+      position:absolute;left:50%;top:14px;transform:translateX(-50%);
+      z-index:20;display:flex;align-items:center;gap:10px;
+      background:rgba(0,0,0,.70);color:#fff;padding:10px 12px;border-radius:12px;
+      max-width:92%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+    }
     .bar{width:220px;height:8px;background:rgba(255,255,255,.22);border-radius:999px;overflow:hidden}
-    .bar>div{height:100%;width:0%;background:#7dd3fc}
-    .hint{position:absolute;left:14px;bottom:14px;z-index:20;background:rgba(255,255,255,.94);color:var(--txt);
-      border:1px solid rgba(226,232,240,.95);border-radius:14px;padding:10px 12px;max-width:min(520px, calc(100% - 28px));
-      box-shadow:var(--shadow);font-size:13px}
+    .bar > div{height:100%;width:0%;background:#7dd3fc}
+
+    .hint{
+      position:absolute;left:14px;bottom:14px;z-index:20;
+      background:rgba(255,255,255,.94);color:var(--txt);
+      border:1px solid rgba(226,232,240,.95);border-radius:14px;padding:10px 12px;
+      max-width:min(520px, calc(100% - 28px));
+      box-shadow:var(--shadow);font-size:13px
+    }
     .hint .k{display:inline-block;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:2px 8px;margin:2px 4px;font-weight:800}
-    .err{display:none;margin-top:8px;background:#fff;border:1px solid #fecaca;border-radius:14px;padding:10px 12px;color:#111827}
-    .err b{color:#b00020}
+
+    .err{
+      display:none;margin-top:8px;background:#fff;border:1px solid #fecaca;border-radius:14px;
+      padding:10px 12px;color:#111827
+    }
+    .err b{color:var(--danger)}
     .err code{background:#f3f4f6;padding:2px 6px;border-radius:8px}
-    .footer{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:12px;padding:2px 4px}
+
+    .footer{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+      color:var(--muted);font-size:12px;padding:2px 4px
+    }
     a{color:var(--brand);text-decoration:none;font-weight:800}
   </style>
 </head>
@@ -45,6 +85,7 @@
         <b>التوأم الرقمي — مدينة عنه</b>
         <span id="sub">جاهز للتحميل…</span>
       </div>
+
       <div class="actions">
         <button class="ghost" id="btnAuto">Auto-Fit</button>
         <button class="ghost" id="btnHotspots">Hotspots</button>
@@ -60,27 +101,37 @@
 
       <model-viewer
         id="mv"
-        src="Anahcity2_0.glb"
+        src="Anahcity_2.0.glb"
         alt="Anah Digital Twin"
         camera-controls
         interaction-prompt="none"
         loading="eager"
         reveal="auto"
 
-        camera-orbit="35deg 62deg 220m"
-        min-camera-orbit="auto 15deg 40m"
-        max-camera-orbit="auto 85deg 2000m"
-        field-of-view="38deg"
-        min-field-of-view="20deg"
-        max-field-of-view="60deg"
+        /* ✅ تثبيت: بدون دوران تلقائي */
+        auto-rotate="false"
 
-        environment-image="https://modelviewer.dev/shared-assets/environments/neutral.hdr"
-        skybox-image="https://modelviewer.dev/shared-assets/environments/neutral.hdr"
+        /* ✅ زوم شغال + مريح */
+        disable-zoom="false"
+        touch-action="pan-y"
+
+        /* ✅ خلفية نظيفة: بدون HDR skybox مزعج */
+        environment-image="neutral"
+        skybox-image=""
+
+        /* ✅ وضوح وإضاءة هادئة */
+        exposure="1.10"
         tone-mapping="aces"
-        exposure="0.95"
-        shadow-intensity="0.95"
-        shadow-softness="0.25"
-        style="width:100%;height:100%;background:transparent;"
+        shadow-intensity="0.25"
+        shadow-softness="0.85"
+
+        /* ✅ كاميرا محسّنة */
+        camera-orbit="35deg 65deg auto"
+        min-camera-orbit="auto auto 2m"
+        max-camera-orbit="auto auto 2500m"
+        field-of-view="38deg"
+
+        style="width:100%;height:100%;"
       ></model-viewer>
 
       <div class="hint" id="hint">
@@ -97,7 +148,7 @@
 
     <div class="footer">
       <div>Digital Twin Viewer — model-viewer</div>
-      <div><a href="Anahcity2_0.glb" id="rawLink" target="_blank" rel="noopener">Open model</a></div>
+      <div><a href="Anahcity_2.0.glb" id="rawLink" target="_blank" rel="noopener">Open model</a></div>
     </div>
   </div>
 
@@ -108,17 +159,10 @@
     const pbar = document.getElementById('pbar');
     const sub = document.getElementById('sub');
     const err = document.getElementById('err');
+
     const btnReset = document.getElementById('btnReset');
     const btnAuto = document.getElementById('btnAuto');
     const btnHotspots = document.getElementById('btnHotspots');
-
-    // ✅ لا دوران تلقائي
-    mv.removeAttribute('auto-rotate');
-    mv.removeAttribute('rotation-per-second');
-
-    // ✅ اجعل عجلة التقريب تعمل دائماً
-    mv.style.touchAction = 'none';
-    mv.addEventListener('wheel', (e) => e.preventDefault(), { passive:false });
 
     function showError(title, details){
       err.style.display = 'block';
@@ -131,7 +175,8 @@
 
     mv.addEventListener('progress', (e) => {
       const d = e.detail || {};
-      const pct = Math.round((d.totalProgress ?? 0) * 100);
+      const total = d.totalProgress ?? 0;
+      const pct = Math.max(0, Math.min(100, Math.round(total * 100)));
       hudText.textContent = `⏳ Loading… ${pct}%`;
       sub.textContent = `تحميل النموذج: ${pct}%`;
       pbar.style.width = `${pct}%`;
@@ -144,21 +189,32 @@
       pbar.style.width = '100%';
       setTimeout(()=> hud.style.display = 'none', 650);
       err.style.display = 'none';
+
+      // تثبيت أكثر: لا تحرك تلقائي
+      mv.autoRotate = false;
+
+      // كاميرا جاهزة
+      mv.cameraOrbit = '35deg 65deg auto';
+      mv.fieldOfView = '38deg';
+      mv.jumpCameraToGoal();
     });
 
     mv.addEventListener('error', () => {
-      showError('model-viewer error', 'تأكد أن اسم الملف هو <code>Anahcity2_0.glb</code> داخل نفس مجلد <code>index.html</code>.');
+      showError('model-viewer error', 'تحقق من اسم ملف GLB ومساره.');
     });
 
+    // Buttons
     btnReset.onclick = () => {
-      mv.cameraOrbit = '35deg 62deg 220m';
+      mv.autoRotate = false;
+      mv.cameraOrbit = '35deg 65deg auto';
       mv.fieldOfView = '38deg';
       mv.jumpCameraToGoal();
     };
 
     btnAuto.onclick = () => {
-      mv.cameraOrbit = '35deg 60deg 420m';
-      mv.fieldOfView = '42deg';
+      mv.autoRotate = false;
+      mv.cameraOrbit = '25deg 60deg auto';
+      mv.fieldOfView = '34deg';
       mv.jumpCameraToGoal();
     };
 
@@ -170,18 +226,21 @@
         sub.textContent = 'إخفاء النقاط';
         return;
       }
+
       const hs1 = document.createElement('button');
       hs1.setAttribute('slot','hotspot-1');
       hs1.setAttribute('data-position','0m 0m 0m');
       hs1.setAttribute('data-normal','0m 1m 0m');
       hs1.textContent = 'Center';
       hs1.style.cssText = 'background:#1d4ed8;color:#fff;border:0;border-radius:999px;padding:6px 10px;font-weight:900;cursor:pointer';
-      hs1.onclick = () => {
+
+      hs1.addEventListener('click', () => {
+        mv.autoRotate = false;
         mv.cameraTarget = '0m 0m 0m';
-        mv.cameraOrbit = '30deg 70deg 260m';
-        mv.fieldOfView = '38deg';
+        mv.cameraOrbit = '25deg 70deg auto';
         mv.jumpCameraToGoal();
-      };
+      });
+
       mv.appendChild(hs1);
       sub.textContent = 'إظهار النقاط';
     };
