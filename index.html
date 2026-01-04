@@ -92,31 +92,46 @@
         <div class="bar"><div id="pbar"></div></div>
       </div>
 
-      <model-viewer
+     <model-viewer
   id="mv"
-  src=""
+  src="Anahcity_2.0.glb"
   alt="Anah Digital Twin"
+
   camera-controls
-  touch-action="pan-y"
-
-  auto-rotate="false"
-  rotation-per-second="0deg"
-
-  exposure="1.05"
-  shadow-intensity="0.35"
-  shadow-softness="0.7"
-  environment-image="neutral"
-
   interaction-prompt="none"
   loading="eager"
   reveal="auto"
+  touch-action="pan-y"
 
-  min-camera-orbit="auto auto 1m"
-  max-camera-orbit="auto auto 1200m"
-  camera-orbit="45deg 65deg auto"
+  /* 🔒 تثبيت النموذج */
+  auto-rotate="false"
+  rotation-per-second="0deg"
+
+  /* 🎥 الكاميرا */
+  camera-orbit="45deg 60deg auto"
+  min-camera-orbit="auto auto 2m"
+  max-camera-orbit="auto auto 1500m"
   field-of-view="45deg"
+
+  /* 💡 تحسين الإضاءة */
+  environment-image="https://modelviewer.dev/shared-assets/environments/neutral.hdr"
+  exposure="1.35"
+  tone-mapping="aces"
+  shadow-intensity="0.6"
+  shadow-softness="0.4"
+
+  /* 🧱 إبراز التفاصيل */
+  disable-zoom="false"
+  ar="false"
+
+  style="
+    width:100%;
+    height:100%;
+    background: linear-gradient(#f8fafc, #eef2f7);
+  "
 >
 </model-viewer>
+
 
 
       <div class="hint" id="hint">
