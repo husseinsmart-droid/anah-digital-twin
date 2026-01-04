@@ -14,6 +14,7 @@
     #err{position:fixed;left:14px;right:14px;bottom:14px;z-index:9999;display:none;
       background:rgba(255,255,255,.96);border:1px solid #ddd;border-radius:12px;padding:12px 14px;font-size:13px}
     #err b{color:#b00020}
+    code{background:#f3f3f3;padding:2px 4px;border-radius:6px}
   </style>
 </head>
 <body>
@@ -21,10 +22,10 @@
   <button id="reset">⟳ Reset</button>
   <div id="err"></div>
 
-  <!-- ✅ Classic scripts (no type="module") -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
+  <!-- ✅ Use UNPKG (matches examples/js global style) -->
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
 
   <script>
   (function(){
@@ -46,12 +47,18 @@
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 50000);
 
-    const renderer = new THREE.WebGLRenderer({ antialias:true });
+    const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:false });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio || 1);
     renderer.shadowMap.enabled = true;
     document.body.appendChild(renderer.domElement);
 
+    // ✅ OrbitControls global (examples/js) => THREE.OrbitControls
+    if (!THREE.OrbitControls) {
+      showErr("<b>OrbitControls failed to load.</b><br>CDN blocked or file not found.");
+      hud.textContent = "❌ Controls missing";
+      return;
+    }
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
@@ -107,14 +114,17 @@
       return u.toString();
     }
 
-    // جرّب مسارات متعددة للملف
+    // ✅ ضع اسم ملفك هنا بالضبط
+    const MODEL_FILE = "Anahcity2_0.glb";
+
+    // جرّب مسارات متعددة
     const CANDIDATES = [
-      "./Anahcity2_0.glb",
-      "/Anahcity2_0.glb",
-      "./assets/Anahcity2_0.glb",
-      "/assets/Anahcity2_0.glb",
-      "./models/Anahcity2_0.glb",
-      "/models/Anahcity2_0.glb"
+      "./" + MODEL_FILE,
+      "/" + MODEL_FILE,
+      "./assets/" + MODEL_FILE,
+      "/assets/" + MODEL_FILE,
+      "./models/" + MODEL_FILE,
+      "/models/" + MODEL_FILE
     ];
 
     async function headOk(url){
@@ -134,6 +144,11 @@
     }
 
     // ---------- Load model ----------
+    if (!THREE.GLTFLoader) {
+      showErr("<b>GLTFLoader failed to load.</b>");
+      hud.textContent = "❌ Loader missing";
+      return;
+    }
     const loader = new THREE.GLTFLoader();
 
     async function load(){
@@ -142,7 +157,7 @@
         hud.textContent = "❌ Model not found";
         showErr(
           "<b>GLB not found.</b><br>" +
-          "ضع الملف <code>Anahcity2_0.glb</code> في نفس مجلد <code>index.html</code> أو داخل <code>/assets</code> أو <code>/models</code>.<br><br>" +
+          "ضع الملف <code>" + MODEL_FILE + "</code> في نفس مجلد <code>index.html</code> أو داخل <code>/assets</code> أو <code>/models</code>.<br><br>" +
           "Tried:<br><code>" + CANDIDATES.join("</code><br><code>") + "</code>"
         );
         return;
@@ -177,7 +192,7 @@
         function(e){
           console.error(e);
           hud.textContent = "❌ Failed";
-          showErr("<b>GLB load error.</b><br>URL: <code>" + url + "</code>");
+          showErr("<b>GLB load error.</b><br>URL: <code>" + url + "</code><br>افتح Console وشوف هل 404/Blocked/CORS.");
         }
       );
     }
@@ -187,6 +202,7 @@
       controls.update();
       renderer.render(scene, camera);
     }
+
     animate();
     load();
   })();
