@@ -7,6 +7,7 @@
   <style>
     html, body { margin:0; height:100%; overflow:hidden; background:#eef1f5; font-family: Arial, sans-serif; }
     #c { display:block; width:100%; height:100%; }
+
     #hud{
       position:fixed; left:50%; top:14px; transform:translateX(-50%);
       z-index:9999; background:rgba(0,0,0,.72); color:#fff;
@@ -14,17 +15,19 @@
       max-width:92vw; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
       display:flex; align-items:center; gap:10px;
     }
-    #barWrap{ width:180px; height:8px; background:rgba(255,255,255,.22); border-radius:999px; overflow:hidden; }
+    #barWrap{ width:220px; height:8px; background:rgba(255,255,255,.22); border-radius:999px; overflow:hidden; }
     #bar{ height:100%; width:0%; background:#7dd3fc; }
+
     #reset{
       position:fixed; top:14px; right:14px; z-index:9999;
       border:0; border-radius:10px; background:#1d4ed8; color:#fff;
       padding:10px 14px; cursor:pointer; font-weight:700;
       box-shadow:0 8px 24px rgba(0,0,0,.18);
     }
+
     #err{
       position:fixed; left:14px; right:14px; bottom:14px; z-index:9999;
-      display:none; background:rgba(255,255,255,.96);
+      display:none; background:rgba(255,255,255,.97);
       border:1px solid #e5e7eb; border-radius:12px; padding:12px 14px;
       font-size:13px; color:#111827;
     }
@@ -58,7 +61,7 @@
 
     function showError(title, details) {
       errBox.style.display = "block";
-      errBox.innerHTML = `<b>JS Error:</b> ${title}<br><div style="margin-top:6px">${details || ""}</div>`;
+      errBox.innerHTML = `<b>Error:</b> ${title}<br><div style="margin-top:6px">${details || ""}</div>`;
       hudText.textContent = "❌ Failed";
       bar.style.width = "0%";
     }
@@ -73,7 +76,6 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(window.innerWidth, window.innerHeight, false);
 
-    // تحسين ألوان/تباين
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
@@ -99,37 +101,29 @@
       controls.target.set(0, 0, 0);
       controls.update();
     } catch (e) {
-      showError("Controls failed to init", String(e));
+      showError("OrbitControls failed", `<code>${String(e)}</code>`);
       throw e;
     }
 
-    // ===== Lights (تحسين العرض) =====
+    // ===== Lights =====
     scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-
     const sun = new THREE.DirectionalLight(0xffffff, 1.15);
     sun.position.set(40, 70, 25);
-    sun.castShadow = false;
     scene.add(sun);
-
     const fill = new THREE.DirectionalLight(0xffffff, 0.35);
     fill.position.set(-30, 25, -20);
     scene.add(fill);
 
-    // أرضية خفيفة (تعطي إحساس أفضل)
+    // Ground
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(3000, 3000),
       new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95, metalness: 0.0 })
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = 0;
-    ground.receiveShadow = false;
     scene.add(ground);
 
-    // ===== Load GLB =====
     const loader = new GLTFLoader();
-
-    // اسم الملف عندك في الريبو
-    const MODEL_URL = "./Anahcity2_0.glb";
 
     let modelRoot = null;
     let defaultCam = null;
@@ -140,7 +134,6 @@
       const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
 
-      // ارفع الهدف شوي عن الأرض
       const target = center.clone();
       target.y = Math.max(center.y, 0);
 
@@ -164,54 +157,126 @@
       defaultTarget = controls.target.clone();
     }
 
-    loader.load(
-      MODEL_URL,
-      (gltf) => {
-        modelRoot = gltf.scene;
+    // ===== Robust loader (tries multiple names + shows clear errors) =====
+    const CANDIDATES = [
+      "./Anahcity2_0.glb",
+      "./AnahCity2_0.glb",
+      "./anahcity2_0.glb",
+      "./Anahcity2_0.GLB",
+      "./AnahCity2_0.GLB",
+      "./Anahcity2-0.glb",
+      "./Anahcity2.glb"
+    ];
 
-        // ضمان ألوان صحيحة
-        modelRoot.traverse((o) => {
-          if (o.isMesh) {
-            o.castShadow = false;
-            o.receiveShadow = false;
-            if (o.material) {
-              o.material.side = THREE.FrontSide;
-              o.material.needsUpdate = true;
-            }
-          }
-        });
+    async function fetchArrayBuffer(url, onProgress) {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status} (${res.statusText})`);
 
-        // ضع النموذج فوق الأرضية
-        const box = new THREE.Box3().setFromObject(modelRoot);
-        const minY = box.min.y;
-        modelRoot.position.y -= minY; // يخلي أقل نقطة على y=0
-        scene.add(modelRoot);
+      const total = Number(res.headers.get("content-length") || 0);
 
-        frameObject(modelRoot);
-
-        hudText.textContent = "✅ Loaded";
-        bar.style.width = "100%";
-        setTimeout(() => { hud.style.display = "none"; }, 900);
-      },
-      (xhr) => {
-        if (xhr && xhr.total) {
-          const p = Math.min(100, Math.round((xhr.loaded / xhr.total) * 100));
-          hudText.textContent = `⏳ Loading... ${p}%`;
-          bar.style.width = `${p}%`;
-        } else {
-          hudText.textContent = "⏳ Loading...";
-        }
-      },
-      (error) => {
-        showError("Failed to load GLB", `
-          تأكد أن الملف موجود بالريبو بنفس الاسم: <code>Anahcity2_0.glb</code><br>
-          وتأكد أنه في نفس مجلد <code>index.html</code>.<br><br>
-          التفاصيل: <code>${String(error?.message || error)}</code>
-        `);
+      if (!res.body || !("getReader" in res.body)) {
+        const buf = await res.arrayBuffer();
+        onProgress?.(buf.byteLength, buf.byteLength);
+        return buf;
       }
-    );
 
-    // ===== Reset button =====
+      const reader = res.body.getReader();
+      let loaded = 0;
+      const chunks = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        loaded += value.byteLength;
+        onProgress?.(loaded, total);
+      }
+
+      const out = new Uint8Array(loaded);
+      let offset = 0;
+      for (const c of chunks) {
+        out.set(c, offset);
+        offset += c.byteLength;
+      }
+      return out.buffer;
+    }
+
+    async function loadModelSmart() {
+      let lastErr = null;
+
+      for (const url of CANDIDATES) {
+        try {
+          hudText.textContent = `⏳ Loading: ${url.replace("./","")}`;
+          bar.style.width = "5%";
+
+          const buf = await fetchArrayBuffer(url, (loaded, total) => {
+            if (total > 0) {
+              const p = Math.min(99, Math.round((loaded / total) * 100));
+              hudText.textContent = `⏳ Loading... ${p}%`;
+              bar.style.width = `${p}%`;
+            } else {
+              // بدون content-length
+              hudText.textContent = "⏳ Loading...";
+              bar.style.width = "35%";
+            }
+          });
+
+          bar.style.width = "60%";
+          const gltf = await new Promise((resolve, reject) => {
+            loader.parse(
+              buf,
+              "./",
+              resolve,
+              reject
+            );
+          });
+
+          modelRoot = gltf.scene;
+
+          modelRoot.traverse((o) => {
+            if (o.isMesh) {
+              if (o.material) {
+                o.material.side = THREE.FrontSide;
+                o.material.needsUpdate = true;
+              }
+            }
+          });
+
+          // put on ground
+          const box = new THREE.Box3().setFromObject(modelRoot);
+          const minY = box.min.y;
+          modelRoot.position.y -= minY;
+
+          scene.add(modelRoot);
+          frameObject(modelRoot);
+
+          hudText.textContent = "✅ Loaded";
+          bar.style.width = "100%";
+          setTimeout(() => { hud.style.display = "none"; }, 900);
+          return; // success
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+
+      showError(
+        "GLB not found / failed to load",
+        `لم أستطع تحميل أي اسم من هذه الملفات:<br>
+         <code>${CANDIDATES.map(x => x.replace("./","")).join("</code>, <code>")}</code><br><br>
+         آخر خطأ: <code>${String(lastErr?.message || lastErr)}</code>`
+      );
+    }
+
+    // Timeout safeguard
+    const hardTimeout = setTimeout(() => {
+      if (!modelRoot) {
+        showError("Timeout", "التحميل تجاوز الوقت. غالباً الملف غير موجود أو كبير جداً أو الاسم مختلف.");
+      }
+    }, 30000);
+
+    loadModelSmart().finally(() => clearTimeout(hardTimeout));
+
+    // ===== Reset =====
     resetBtn.addEventListener("click", () => {
       if (defaultCam && defaultTarget) {
         camera.position.copy(defaultCam);
@@ -240,7 +305,7 @@
 
     // ===== Global error hook =====
     window.addEventListener("error", (e) => {
-      if (e?.message) showError(e.message, `في الملف: <code>${e.filename || ""}</code> سطر: <code>${e.lineno || ""}</code>`);
+      if (e?.message) showError(e.message, `<code>${e.filename || ""}</code> : <code>${e.lineno || ""}</code>`);
     });
   </script>
 </body>
