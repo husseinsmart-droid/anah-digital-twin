@@ -2,215 +2,224 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <title>التوأم الرقمي — مدينة عنه</title>
+  <title>Anah Digital Twin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <!-- model-viewer -->
-  <script type="module"
-    src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js">
-  </script>
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 
   <style>
-    html,body{
-      margin:0;
-      height:100%;
-      background:#f1f5f9;
-      font-family:system-ui,-apple-system,"Segoe UI",Tahoma;
+    :root{
+      --bg:#eef1f5; --card:#ffffff; --txt:#0f172a; --muted:#64748b;
+      --brand:#1d4ed8; --danger:#b00020; --shadow:0 14px 40px rgba(0,0,0,.12);
     }
-
-    .app{
-      height:100%;
-      display:grid;
-      grid-template-rows:auto 1fr auto;
-      gap:10px;
-      padding:12px;
+    html,body{margin:0;height:100%;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Arial}
+    .wrap{position:fixed;inset:0;display:grid;grid-template-rows:auto 1fr auto;gap:12px;padding:14px}
+    .topbar{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      background:rgba(255,255,255,.85);backdrop-filter:blur(10px);
+      border:1px solid rgba(226,232,240,.8);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow)
     }
-
-    .top{
-      background:#ffffff;
-      border-radius:14px;
-      padding:10px 14px;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      box-shadow:0 8px 24px rgba(0,0,0,.08);
+    .title{display:flex;flex-direction:column;gap:2px}
+    .title b{font-size:14px;color:var(--txt)}
+    .title span{font-size:12px;color:var(--muted)}
+    .actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    button{
+      border:0;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:700;
+      background:var(--brand);color:#fff;box-shadow:0 10px 26px rgba(29,78,216,.28)
     }
-
-    .top b{font-size:15px}
-    .top span{font-size:12px;color:#64748b}
-
-    .actions button{
-      border:0;
-      padding:8px 12px;
-      border-radius:10px;
-      cursor:pointer;
-      font-weight:700;
-      margin-inline-start:6px;
-    }
-
-    .actions .ghost{
-      background:#f1f5f9;
-    }
-    .actions .primary{
-      background:#2563eb;
-      color:#fff;
-    }
+    button.secondary{background:#0f172a;box-shadow:0 10px 26px rgba(15,23,42,.22)}
+    button.ghost{background:#fff;color:var(--txt);border:1px solid #e2e8f0;box-shadow:none}
 
     .stage{
-      position:relative;
-      background:linear-gradient(#f8fafc,#eef2f7);
-      border-radius:18px;
-      overflow:hidden;
-      box-shadow:0 12px 32px rgba(0,0,0,.12);
+      position:relative;overflow:hidden;border-radius:18px;border:1px solid rgba(226,232,240,.9);
+      background:linear-gradient(180deg,#f8fafc, #eef2ff);
+      box-shadow:var(--shadow)
     }
-
     model-viewer{
-      width:100%;
-      height:100%;
-      background:transparent;
+      width:100%;height:100%;
+      --progress-bar-color: rgba(29,78,216,.95);
+      --poster-color: transparent;
     }
 
-    .loading{
-      position:absolute;
-      top:14px;
-      left:50%;
-      transform:translateX(-50%);
-      background:#111827;
-      color:#fff;
-      padding:8px 14px;
-      border-radius:12px;
-      font-size:13px;
-      display:flex;
-      align-items:center;
-      gap:10px;
+    .hud{
+      position:absolute;left:50%;top:14px;transform:translateX(-50%);
+      z-index:20;display:flex;align-items:center;gap:10px;
+      background:rgba(0,0,0,.70);color:#fff;padding:10px 12px;border-radius:12px;
+      max-width:92%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
     }
-
-    .bar{
-      width:180px;
-      height:6px;
-      background:#374151;
-      border-radius:999px;
-      overflow:hidden;
-    }
-
-    .bar div{
-      height:100%;
-      width:0%;
-      background:#38bdf8;
-    }
+    .bar{width:220px;height:8px;background:rgba(255,255,255,.22);border-radius:999px;overflow:hidden}
+    .bar > div{height:100%;width:0%;background:#7dd3fc}
 
     .hint{
-      position:absolute;
-      bottom:14px;
-      left:14px;
-      background:#ffffff;
-      border-radius:14px;
-      padding:10px 12px;
-      font-size:13px;
-      box-shadow:0 8px 24px rgba(0,0,0,.12);
+      position:absolute;left:14px;bottom:14px;z-index:20;
+      background:rgba(255,255,255,.92);color:var(--txt);
+      border:1px solid rgba(226,232,240,.9);border-radius:14px;padding:10px 12px;
+      max-width:min(520px, calc(100% - 28px));
+      box-shadow:var(--shadow);font-size:13px
     }
+    .hint .k{display:inline-block;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:2px 8px;margin:2px 4px;font-weight:700}
+    .err{
+      display:none;margin-top:8px;background:#fff;border:1px solid #fecaca;border-radius:14px;
+      padding:10px 12px;color:#111827
+    }
+    .err b{color:var(--danger)}
+    .err code{background:#f3f4f6;padding:2px 6px;border-radius:8px}
 
     .footer{
-      font-size:12px;
-      color:#64748b;
-      text-align:center;
+      display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+      color:var(--muted);font-size:12px;padding:2px 4px
     }
+    a{color:var(--brand);text-decoration:none;font-weight:700}
   </style>
 </head>
 
 <body>
-<div class="app">
+  <div class="wrap">
+    <div class="topbar">
+      <div class="title">
+        <b>التوأم الرقمي — مدينة عنه</b>
+        <span id="sub">جاري التحميل…</span>
+      </div>
 
-  <!-- Top bar -->
-  <div class="top">
-    <div>
-      <b>التوأم الرقمي — مدينة عنه</b><br>
-      <span id="status">جاري التحميل…</span>
+      <div class="actions">
+        <button class="ghost" id="btnAuto">Auto-Fit</button>
+        <button class="ghost" id="btnHotspots">Hotspots</button>
+        <button class="secondary" id="btnReset">⟳ Reset</button>
+      </div>
     </div>
-    <div class="actions">
-      <button class="ghost" id="btnFit">Auto-Fit</button>
-      <button class="primary" id="btnReset">Reset</button>
+
+    <div class="stage">
+      <div class="hud" id="hud">
+        <span id="hudText">⏳ Loading model…</span>
+        <div class="bar"><div id="pbar"></div></div>
+      </div>
+
+      <!-- ✅ مهم: لا يوجد auto-rotate ولا disable-zoom نهائياً -->
+      <model-viewer
+        id="mv"
+        src="./Anahcity_2.0.glb"
+        alt="Anah Digital Twin"
+        camera-controls
+        interaction-prompt="none"
+        loading="eager"
+        reveal="auto"
+        touch-action="pan-y"
+        camera-orbit="45deg 65deg auto"
+        field-of-view="45deg"
+        min-camera-orbit="auto auto 1m"
+        max-camera-orbit="auto auto 5000m"
+        environment-image="https://modelviewer.dev/shared-assets/environments/neutral.hdr"
+        exposure="1.15"
+        tone-mapping="aces"
+        shadow-intensity="0.45"
+        shadow-softness="0.5"
+        style="width:100%;height:100%;background:transparent;">
+      </model-viewer>
+
+      <div class="hint" id="hint">
+        <div style="font-weight:800;margin-bottom:4px">التحكم:</div>
+        <div>
+          <span class="k">يسار ماوس</span> تدوير ·
+          <span class="k">عجلة</span> تكبير ·
+          <span class="k">يمين ماوس</span> سحب ·
+          <span class="k">موبايل</span> سحب/قرص
+        </div>
+        <div class="err" id="err"></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div>Digital Twin Viewer — model-viewer</div>
+      <div><a href="./Anahcity_2.0.glb" target="_blank" rel="noopener">Open model</a></div>
     </div>
   </div>
 
-  <!-- Stage -->
-  <div class="stage">
+  <script>
+    const mv = document.getElementById('mv');
+    const hud = document.getElementById('hud');
+    const hudText = document.getElementById('hudText');
+    const pbar = document.getElementById('pbar');
+    const sub = document.getElementById('sub');
+    const err = document.getElementById('err');
 
-    <div class="loading" id="loading">
-      <span id="pct">0%</span>
-      <div class="bar"><div id="bar"></div></div>
-    </div>
+    const btnReset = document.getElementById('btnReset');
+    const btnAuto = document.getElementById('btnAuto');
+    const btnHotspots = document.getElementById('btnHotspots');
 
-    <model-viewer
-      id="mv"
-      src="./Anahcity_2.0.glb"
-      alt="Anah Digital Twin"
+    function showError(title, details){
+      err.style.display = 'block';
+      err.innerHTML = `<b>خطأ:</b> ${title}<br>${details || ''}`;
+      hudText.textContent = '❌ Failed';
+      sub.textContent = 'فشل التحميل';
+      pbar.style.width = '0%';
+      hud.style.display = 'flex';
+    }
 
-      camera-controls
-      interaction-prompt="none"
+    // Progress
+    mv.addEventListener('progress', (e) => {
+      const total = e.detail?.totalProgress ?? 0;
+      const pct = Math.max(0, Math.min(100, Math.round(total * 100)));
+      hudText.textContent = `⏳ Loading… ${pct}%`;
+      sub.textContent = `تحميل النموذج: ${pct}%`;
+      pbar.style.width = `${pct}%`;
+      hud.style.display = 'flex';
+    });
 
-      exposure="1.1"
-      shadow-intensity="0.4"
+    async function autoFit(){
+      // Auto-fit قوي: يضبط الكاميرا على حدود الموديل بعد التحميل
+      await mv.updateComplete;
+      mv.cameraTarget = 'auto auto auto';
+      mv.cameraOrbit  = '45deg 65deg auto';
+      mv.fieldOfView  = '45deg';
+      mv.jumpCameraToGoal();
+    }
 
-      camera-orbit="0deg 75deg auto"
-      min-camera-orbit="auto auto 1m"
-      max-camera-orbit="auto auto 5000m"
-      field-of-view="45deg">
-    </model-viewer>
+    mv.addEventListener('load', async () => {
+      hudText.textContent = '✅ Loaded';
+      sub.textContent = 'تم التحميل';
+      pbar.style.width = '100%';
 
-    <div class="hint">
-      يسار ماوس: تدوير · عجلة: تكبير · يمين ماوس: سحب
-    </div>
-  </div>
+      // ✅ أهم سطر لمنع "100% والمشهد فارغ"
+      await autoFit();
 
-  <div class="footer">
-    Digital Twin Viewer — model-viewer
-  </div>
-</div>
+      setTimeout(()=> hud.style.display = 'none', 700);
+      err.style.display = 'none';
+    });
 
-<script>
-  const mv = document.getElementById('mv');
-  const status = document.getElementById('status');
-  const loading = document.getElementById('loading');
-  const pct = document.getElementById('pct');
-  const bar = document.getElementById('bar');
+    mv.addEventListener('error', () => {
+      showError(
+        'model-viewer error',
+        `تأكد أن الملف موجود في نفس مجلد <code>index.html</code> وبنفس الاسم تمامًا: <code>Anahcity_2.0.glb</code>`
+      );
+    });
 
-  const btnFit = document.getElementById('btnFit');
-  const btnReset = document.getElementById('btnReset');
+    btnReset.onclick = autoFit;
+    btnAuto.onclick = autoFit;
 
-  // Progress
-  mv.addEventListener('progress', (e)=>{
-    const p = Math.round((e.detail.totalProgress || 0) * 100);
-    pct.textContent = p + '%';
-    bar.style.width = p + '%';
-  });
+    let hotspotsOn = false;
+    btnHotspots.onclick = () => {
+      hotspotsOn = !hotspotsOn;
+      if (!hotspotsOn){
+        [...mv.querySelectorAll('[slot^="hotspot-"]')].forEach(n=>n.remove());
+        sub.textContent = 'إخفاء النقاط';
+        return;
+      }
 
-  // Load complete → Auto-Fit حقيقي
-  mv.addEventListener('load', async ()=>{
-    status.textContent = 'تم التحميل 100%';
-    loading.style.display = 'none';
+      const hs1 = document.createElement('button');
+      hs1.setAttribute('slot','hotspot-1');
+      hs1.setAttribute('data-position','0m 0m 0m');
+      hs1.setAttribute('data-normal','0m 1m 0m');
+      hs1.textContent = 'Center';
+      hs1.style.cssText = 'background:#1d4ed8;color:#fff;border:0;border-radius:999px;padding:6px 10px;font-weight:800;cursor:pointer';
 
-    await mv.updateComplete;
-    mv.cameraOrbit = '0deg 75deg auto';
-    mv.cameraTarget = 'auto auto auto';
-    mv.jumpCameraToGoal();
-  });
+      hs1.addEventListener('click', () => {
+        mv.cameraTarget = '0m 0m 0m';
+        mv.cameraOrbit = '35deg 70deg auto';
+        mv.jumpCameraToGoal();
+      });
 
-  // Buttons
-  btnFit.onclick = async ()=>{
-    await mv.updateComplete;
-    mv.cameraOrbit = '0deg 75deg auto';
-    mv.cameraTarget = 'auto auto auto';
-    mv.jumpCameraToGoal();
-  };
-
-  btnReset.onclick = async ()=>{
-    await mv.updateComplete;
-    mv.cameraOrbit = '0deg 75deg auto';
-    mv.cameraTarget = 'auto auto auto';
-    mv.jumpCameraToGoal();
-  };
-</script>
-
+      mv.appendChild(hs1);
+      sub.textContent = 'إظهار النقاط';
+    };
+  </script>
 </body>
 </html>
