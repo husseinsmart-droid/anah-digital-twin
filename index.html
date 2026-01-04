@@ -6,87 +6,69 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 <style>
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  overflow: hidden;
-  background: #f2f2f2;
-  font-family: Arial, sans-serif;
+html, body { margin:0; padding:0; height:100%; overflow:hidden; background:#f2f2f2; font-family:Arial,sans-serif; }
+#status{
+  position:fixed; top:15px; left:50%; transform:translateX(-50%);
+  background:rgba(0,0,0,.78); color:#fff; padding:10px 14px; border-radius:8px;
+  z-index:9999; font-size:14px; max-width:92vw; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-
-#status {
-  position: fixed;
-  top: 15px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0,0,0,0.75);
-  color: #fff;
-  padding: 8px 14px;
-  border-radius: 6px;
-  z-index: 10;
-  font-size: 14px;
+#reset{
+  position:fixed; top:15px; right:15px; padding:10px 14px; border:none;
+  background:#0d6efd; color:#fff; border-radius:8px; cursor:pointer; z-index:9999;
 }
-
-#reset {
-  position: fixed;
-  top: 15px;
-  right: 15px;
-  padding: 8px 12px;
-  border: none;
-  background: #0d6efd;
-  color: #fff;
-  border-radius: 6px;
-  cursor: pointer;
-  z-index: 10;
+#err{
+  position:fixed; left:15px; bottom:15px; right:15px;
+  background:rgba(255,255,255,.96); border:1px solid #ddd; border-radius:10px;
+  padding:12px 14px; z-index:9999; font-size:13px; color:#111; display:none;
 }
+#err b{ color:#b00020; }
 </style>
 </head>
 
 <body>
-
 <div id="status">⏳ Loading model…</div>
 <button id="reset">⟳ Reset</button>
+<div id="err"></div>
 
 <script type="module">
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 
-/* ===== Scene ===== */
+const statusEl = document.getElementById("status");
+const errEl = document.getElementById("err");
+
+function showErr(html){
+  errEl.style.display = "block";
+  errEl.innerHTML = html;
+}
+
+window.addEventListener("error", (e) => {
+  showErr(`<b>JS Error:</b> ${String(e.message || e.error || "Unknown")}`);
+});
+
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf2f2f2);
 
-/* ===== Camera ===== */
-const camera = new THREE.PerspectiveCamera(
-  45,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  50000
-);
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 50000);
 
-/* ===== Renderer ===== */
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias:true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
 
-/* ===== Controls ===== */
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.06;
 controls.maxPolarAngle = Math.PI / 2.05;
 
-/* ===== Lights ===== */
-scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-
-const sun = new THREE.DirectionalLight(0xffffff, 1.2);
-sun.position.set(1000, 1200, 800);
+scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+const sun = new THREE.DirectionalLight(0xffffff, 1.25);
+sun.position.set(900, 1100, 700);
 sun.castShadow = true;
 scene.add(sun);
 
-/* ===== Ground ===== */
 const ground = new THREE.Mesh(
   new THREE.PlaneGeometry(20000, 20000),
   new THREE.MeshStandardMaterial({ color: 0xdedede })
@@ -95,76 +77,144 @@ ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-/* ===== Load Model ===== */
-const loader = new GLTFLoader();
-const status = document.getElementById("status");
-
 let model, center, size;
 
-loader.load(
-  "/Anahcity2_0.glb",   // تأكد أن الاسم مطابق 100%
-  (gltf) => {
-    model = gltf.scene;
+function setCameraToModel(root){
+  const box = new THREE.Box3().setFromObject(root);
+  center = box.getCenter(new THREE.Vector3());
+  size = box.getSize(new THREE.Vector3()).length();
 
-    model.traverse(obj => {
-      if (obj.isMesh) {
-        obj.castShadow = true;
-        obj.receiveShadow = true;
-      }
-    });
+  controls.target.copy(center);
+  camera.position.copy(center).add(new THREE.Vector3(size * 0.6, size * 0.45, size * 0.6));
 
-    scene.add(model);
+  camera.near = Math.max(0.01, size / 1000);
+  camera.far  = Math.max(5000, size * 10);
+  camera.updateProjectionMatrix();
+  controls.update();
+}
 
-    const box = new THREE.Box3().setFromObject(model);
-    center = box.getCenter(new THREE.Vector3());
-    size = box.getSize(new THREE.Vector3()).length();
-
-    controls.target.copy(center);
-    camera.position.copy(center).add(
-      new THREE.Vector3(size * 0.6, size * 0.45, size * 0.6)
-    );
-
-    camera.near = size / 1000;
-    camera.far = size * 10;
-    camera.updateProjectionMatrix();
-    controls.update();
-
-    status.textContent = "✅ Model loaded";
-    setTimeout(() => status.style.display = "none", 1500);
-  },
-  undefined,
-  (err) => {
-    console.error(err);
-    status.innerHTML = "❌ Failed to load model<br>Check GLB path";
-  }
-);
-
-/* ===== Reset ===== */
 document.getElementById("reset").onclick = () => {
   if (!model) return;
   controls.target.copy(center);
-  camera.position.copy(center).add(
-    new THREE.Vector3(size * 0.6, size * 0.45, size * 0.6)
-  );
+  camera.position.copy(center).add(new THREE.Vector3(size * 0.6, size * 0.45, size * 0.6));
   camera.updateProjectionMatrix();
   controls.update();
 };
 
-/* ===== Resize ===== */
 window.addEventListener("resize", () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.aspect = window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-/* ===== Animate ===== */
-function animate() {
+function cacheBust(url){
+  const u = new URL(url, window.location.href);
+  u.searchParams.set("v", String(Date.now()));
+  return u.href;
+}
+
+/* ✅ جرّب أكثر من مسار تلقائياً (يحَل مشكلة 404/المجلدات/حساسية الأحرف) */
+const MODEL_CANDIDATES = [
+  "./Anahcity2_0.glb",
+  "/Anahcity2_0.glb",
+  "./assets/Anahcity2_0.glb",
+  "/assets/Anahcity2_0.glb",
+  "./models/Anahcity2_0.glb",
+  "/models/Anahcity2_0.glb",
+];
+
+async function headOk(url){
+  try{
+    const r = await fetch(url, { method:"HEAD", cache:"no-store" });
+    return r.ok;
+  }catch(_){
+    return false;
+  }
+}
+
+async function pickFirstExisting(){
+  for (const p of MODEL_CANDIDATES){
+    const u = cacheBust(p);
+    statusEl.textContent = `🔎 Checking: ${p}`;
+    if (await headOk(u)) return u;
+  }
+  return null;
+}
+
+const manager = new THREE.LoadingManager();
+manager.onProgress = (_, loaded, total) => {
+  const pct = total ? Math.round((loaded/total)*100) : loaded;
+  statusEl.textContent = `⏳ Loading assets… ${pct}%`;
+};
+manager.onError = (url) => {
+  showErr(`<b>Asset load failed:</b> ${url}`);
+};
+
+const loader = new GLTFLoader(manager);
+
+async function loadModel(){
+  const url = await pickFirstExisting();
+  if (!url){
+    statusEl.textContent = "❌ Model not found";
+    showErr(`<b>GLB not found.</b><br>
+      Put <code>Anahcity2_0.glb</code> in the project root (same folder as index.html) or in <code>/assets</code> or <code>/models</code>.<br>
+      Tried:<br><code>${MODEL_CANDIDATES.join("</code><br><code>")}</code>`);
+    return;
+  }
+
+  statusEl.textContent = "⏳ Loading model…";
+
+  const timeoutMs = 20000;
+  const timeout = setTimeout(() => {
+    showErr(`<b>Timeout:</b> model is taking too long.<br>URL: <code>${url}</code>`);
+  }, timeoutMs);
+
+  loader.load(
+    url,
+    (gltf) => {
+      clearTimeout(timeout);
+
+      model = gltf.scene;
+      model.traverse(o => {
+        if (o.isMesh){
+          o.castShadow = true;
+          o.receiveShadow = true;
+        }
+      });
+
+      scene.add(model);
+      setCameraToModel(model);
+
+      statusEl.textContent = "✅ Model loaded";
+      setTimeout(() => statusEl.style.display = "none", 1200);
+      errEl.style.display = "none";
+    },
+    (xhr) => {
+      if (xhr && xhr.total){
+        const pct = Math.round((xhr.loaded / xhr.total) * 100);
+        statusEl.textContent = `⏳ Loading model… ${pct}%`;
+      } else {
+        statusEl.textContent = `⏳ Loading model…`;
+      }
+    },
+    (err) => {
+      clearTimeout(timeout);
+      console.error(err);
+      statusEl.textContent = "❌ Failed to load model";
+      showErr(`<b>GLB load error.</b><br>URL: <code>${url}</code><br>
+        افتح Network وتأكد من أن الملف يرجع 200 وليس 404/403.`);
+    }
+  );
+}
+
+function animate(){
   requestAnimationFrame(animate);
   controls.update();
   renderer.render(scene, camera);
 }
 animate();
-</script>
 
+loadModel();
+</script>
 </body>
 </html>
