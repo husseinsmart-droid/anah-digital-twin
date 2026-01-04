@@ -1,10 +1,11 @@
 <!doctype html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
   <title>Anah Digital Twin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
+  <!-- model-viewer -->
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 
   <style>
@@ -16,47 +17,50 @@
     .wrap{position:fixed;inset:0;display:grid;grid-template-rows:auto 1fr auto;gap:12px;padding:14px}
     .topbar{
       display:flex;align-items:center;justify-content:space-between;gap:10px;
-      background:rgba(255,255,255,.8);backdrop-filter:blur(10px);
-      border:1px solid rgba(226,232,240,.8);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow)
+      background:rgba(255,255,255,.86);backdrop-filter:blur(10px);
+      border:1px solid rgba(226,232,240,.9);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow)
     }
     .title{display:flex;flex-direction:column;gap:2px}
     .title b{font-size:14px;color:var(--txt)}
     .title span{font-size:12px;color:var(--muted)}
     .actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
     button{
-      border:0;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:700;
+      border:0;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:800;
       background:var(--brand);color:#fff;box-shadow:0 10px 26px rgba(29,78,216,.28)
     }
     button.secondary{background:#0f172a;box-shadow:0 10px 26px rgba(15,23,42,.22)}
     button.ghost{background:#fff;color:var(--txt);border:1px solid #e2e8f0;box-shadow:none}
     .stage{
-      position:relative;overflow:hidden;border-radius:18px;border:1px solid rgba(226,232,240,.9);
-      background:linear-gradient(180deg,#f8fafc, #eef2ff);
+      position:relative;overflow:hidden;border-radius:18px;border:1px solid rgba(226,232,240,.95);
+      background:radial-gradient(1200px 700px at 50% 15%, #ffffff 0%, #f3f6ff 38%, #eaf0ff 100%);
       box-shadow:var(--shadow)
     }
+
     model-viewer{
       width:100%;height:100%;
       --progress-bar-color: rgba(29,78,216,.95);
       --poster-color: transparent;
+      outline:none;
+      touch-action:none; /* ✅ مهم للـ wheel + السحب */
     }
 
     /* HUD */
     .hud{
       position:absolute;left:50%;top:14px;transform:translateX(-50%);
       z-index:20;display:flex;align-items:center;gap:10px;
-      background:rgba(0,0,0,.70);color:#fff;padding:10px 12px;border-radius:12px;
+      background:rgba(0,0,0,.72);color:#fff;padding:10px 12px;border-radius:12px;
       max-width:92%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
     }
     .bar{width:220px;height:8px;background:rgba(255,255,255,.22);border-radius:999px;overflow:hidden}
     .bar > div{height:100%;width:0%;background:#7dd3fc}
     .hint{
       position:absolute;left:14px;bottom:14px;z-index:20;
-      background:rgba(255,255,255,.92);color:var(--txt);
-      border:1px solid rgba(226,232,240,.9);border-radius:14px;padding:10px 12px;
+      background:rgba(255,255,255,.94);color:var(--txt);
+      border:1px solid rgba(226,232,240,.95);border-radius:14px;padding:10px 12px;
       max-width:min(520px, calc(100% - 28px));
       box-shadow:var(--shadow);font-size:13px
     }
-    .hint .k{display:inline-block;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:2px 8px;margin:2px 4px;font-weight:700}
+    .hint .k{display:inline-block;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:2px 8px;margin:2px 4px;font-weight:800}
     .err{
       display:none;margin-top:8px;background:#fff;border:1px solid #fecaca;border-radius:14px;
       padding:10px 12px;color:#111827
@@ -67,7 +71,7 @@
       display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
       color:var(--muted);font-size:12px;padding:2px 4px
     }
-    a{color:var(--brand);text-decoration:none;font-weight:700}
+    a{color:var(--brand);text-decoration:none;font-weight:800}
   </style>
 </head>
 
@@ -92,50 +96,36 @@
         <div class="bar"><div id="pbar"></div></div>
       </div>
 
-     <model-viewer
-  id="mv"
-  src="Anahcity_2.0.glb"
-  alt="Anah Digital Twin"
+      <model-viewer
+        id="mv"
+        src="Anahcity_2.0.glb"
+        alt="Anah Digital Twin"
 
-  camera-controls
-  interaction-prompt="none"
-  loading="eager"
-  reveal="auto"
-  touch-action="pan-y"
+        camera-controls
+        interaction-prompt="none"
+        loading="eager"
+        reveal="auto"
 
-  /* 🔒 تثبيت النموذج */
-  auto-rotate="false"
-  rotation-per-second="0deg"
+        camera-orbit="35deg 62deg 220m"
+        min-camera-orbit="auto 15deg 40m"
+        max-camera-orbit="auto 85deg 2000m"
+        field-of-view="38deg"
+        min-field-of-view="20deg"
+        max-field-of-view="60deg"
 
-  /* 🎥 الكاميرا */
-  camera-orbit="45deg 60deg auto"
-  min-camera-orbit="auto auto 2m"
-  max-camera-orbit="auto auto 1500m"
-  field-of-view="45deg"
+        environment-image="https://modelviewer.dev/shared-assets/environments/neutral.hdr"
+        skybox-image="https://modelviewer.dev/shared-assets/environments/neutral.hdr"
+        tone-mapping="aces"
+        exposure="0.95"
+        shadow-intensity="0.95"
+        shadow-softness="0.25"
 
-  /* 💡 تحسين الإضاءة */
-  environment-image="https://modelviewer.dev/shared-assets/environments/neutral.hdr"
-  exposure="1.35"
-  tone-mapping="aces"
-  shadow-intensity="0.6"
-  shadow-softness="0.4"
-
-  /* 🧱 إبراز التفاصيل */
-  disable-zoom="false"
-  ar="false"
-
-  style="
-    width:100%;
-    height:100%;
-    background: linear-gradient(#f8fafc, #eef2f7);
-  "
->
-</model-viewer>
-
-
+        style="width:100%;height:100%;background:transparent;"
+      >
+      </model-viewer>
 
       <div class="hint" id="hint">
-        <div style="font-weight:800;margin-bottom:4px">التحكم:</div>
+        <div style="font-weight:900;margin-bottom:4px">التحكم:</div>
         <div>
           <span class="k">يسار ماوس</span> تدوير ·
           <span class="k">عجلة</span> تكبير ·
@@ -166,15 +156,33 @@
     const btnHotspots = document.getElementById('btnHotspots');
     const hint = document.getElementById('hint');
 
-    // جرّب أكثر من اسم (اختلاف case)
+    // ✅ ثبّت النموذج: لا دوران تلقائي
+    mv.removeAttribute('auto-rotate');
+    mv.removeAttribute('rotation-per-second');
+
+    // ✅ عجلة التقريب (مهم جداً)
+    mv.style.touchAction = 'none';
+    mv.addEventListener('wheel', (e) => {
+      // خلّي الـ model-viewer يستلم العجلة للتقريب
+      e.preventDefault();
+    }, { passive: false });
+
+    // جرّب أكثر من اسم (اختلاف اسم الملف/الحروف)
     const CANDIDATES = [
+      './Anahcity_2.0.glb',
+      './AnahCity_2.0.glb',
+      './anahcity_2.0.glb',
+      './ANAHCITY_2.0.glb',
+      './Anahcity_2.0.GLB',
+      './AnahCity_2.0.GLB',
+      './anahcity_2.0.GLB',
+
       './Anahcity2_0.glb',
       './AnahCity2_0.glb',
       './anahcity2_0.glb',
-      './ANAHCITY2_0.glb',
       './Anahcity2_0.GLB',
       './AnahCity2_0.GLB',
-      './anahcity2_0.GLB',
+
       './model.glb',
       './scene.glb'
     ];
@@ -190,7 +198,7 @@
 
     async function exists(url){
       try{
-        const r = await fetch(url, { method:'GET', cache:'no-store' });
+        const r = await fetch(url, { method:'HEAD', cache:'no-store' });
         return r.ok;
       }catch(e){
         return false;
@@ -219,11 +227,11 @@
       hudText.textContent = '✅ Loaded';
       sub.textContent = 'تم التحميل';
       pbar.style.width = '100%';
-      setTimeout(()=> hud.style.display = 'none', 700);
+      setTimeout(()=> hud.style.display = 'none', 650);
 
-      // وضعية عرض قوية وواضحة
-      mv.cameraOrbit = '45deg 65deg auto';
-      mv.fieldOfView = '45deg';
+      // ✅ لقطة أوضح (قريبة نسبياً وتباين أفضل)
+      mv.cameraOrbit = '35deg 62deg 220m';
+      mv.fieldOfView = '38deg';
       mv.jumpCameraToGoal();
 
       err.style.display = 'none';
@@ -232,20 +240,21 @@
     mv.addEventListener('error', () => {
       showError(
         'model-viewer error',
-        `تحقق من وجود ملف GLB داخل المستودع وبنفس الاسم.<br>جرّبت: <code>${CANDIDATES.join('</code>, <code>')}</code>`
+        `تحقق من وجود ملف GLB داخل نفس مجلد <code>index.html</code> وبنفس الاسم.<br>جرّبت: <code>${CANDIDATES.join('</code>, <code>')}</code>`
       );
     });
 
     // Buttons
     btnReset.onclick = () => {
-      mv.cameraOrbit = '45deg 65deg auto';
-      mv.fieldOfView = '45deg';
+      mv.cameraOrbit = '35deg 62deg 220m';
+      mv.fieldOfView = '38deg';
       mv.jumpCameraToGoal();
     };
 
     btnAuto.onclick = () => {
-      mv.cameraOrbit = '35deg 60deg auto';
-      mv.fieldOfView = '40deg';
+      // لقطة أوسع
+      mv.cameraOrbit = '35deg 60deg 420m';
+      mv.fieldOfView = '42deg';
       mv.jumpCameraToGoal();
     };
 
@@ -253,23 +262,22 @@
     btnHotspots.onclick = () => {
       hotspotsOn = !hotspotsOn;
       if (!hotspotsOn){
-        // remove hotspots
         [...mv.querySelectorAll('[slot^="hotspot-"]')].forEach(n=>n.remove());
         sub.textContent = 'إخفاء النقاط';
         return;
       }
 
-      // مثال نقاط (عدّل الإحداثيات لاحقاً)
       const hs1 = document.createElement('button');
       hs1.setAttribute('slot','hotspot-1');
       hs1.setAttribute('data-position','0m 0m 0m');
       hs1.setAttribute('data-normal','0m 1m 0m');
       hs1.textContent = 'Center';
-      hs1.style.cssText = 'background:#1d4ed8;color:#fff;border:0;border-radius:999px;padding:6px 10px;font-weight:800;cursor:pointer';
+      hs1.style.cssText = 'background:#1d4ed8;color:#fff;border:0;border-radius:999px;padding:6px 10px;font-weight:900;cursor:pointer';
 
       hs1.addEventListener('click', () => {
         mv.cameraTarget = '0m 0m 0m';
-        mv.cameraOrbit = '35deg 70deg auto';
+        mv.cameraOrbit = '30deg 70deg 260m';
+        mv.fieldOfView = '38deg';
         mv.jumpCameraToGoal();
       });
 
@@ -287,20 +295,22 @@
         );
         return;
       }
+
       rawLink.href = chosen;
       hudText.textContent = `⏳ Loading: ${chosen.replace('./','')}`;
       sub.textContent = `تحميل: ${chosen.replace('./','')}`;
       mv.src = chosen;
 
-      // إعدادات “جذرية” للمظهر
-      mv.exposure = 1.05;
-      mv.shadowIntensity = 0.35;
-      mv.shadowSoftness = 0.7;
-      mv.environmentImage = 'neutral';
-      mv.style.background = 'transparent';
+      // ✅ لا تضع disable-zoom نهائياً (وجودها يلغي الزوم)
+      mv.removeAttribute('disable-zoom');
 
-      // إخفاء التلميح بعد ثواني
-      setTimeout(()=>{ hint.style.opacity = '0.96'; }, 1200);
+      // ✅ لمسة بسيطة لزيادة وضوح البيوت بدون حرق الإضاءة
+      mv.exposure = 0.95;
+      mv.shadowIntensity = 0.95;
+      mv.shadowSoftness = 0.25;
+      mv.toneMapping = 'aces';
+
+      setTimeout(()=>{ hint.style.opacity = '0.98'; }, 900);
     })();
   </script>
 </body>
