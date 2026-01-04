@@ -2,14 +2,14 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <title>Anah Digital Twin</title>
+  <title>التوأم الرقمي — مدينة عنه</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 
   <style>
     :root{
-      --bg:#eef1f5; --card:#ffffff; --txt:#0f172a; --muted:#64748b;
-      --brand:#1d4ed8; --danger:#b00020; --shadow:0 14px 40px rgba(0,0,0,.12);
+      --bg:#eef1f5; --txt:#0f172a; --muted:#64748b;
+      --brand:#1d4ed8; --shadow:0 14px 40px rgba(0,0,0,.12);
     }
     html,body{margin:0;height:100%;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Arial}
     .wrap{position:fixed;inset:0;display:grid;grid-template-rows:auto 1fr auto;gap:12px;padding:14px}
@@ -26,7 +26,6 @@
       border:0;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:700;
       background:var(--brand);color:#fff;box-shadow:0 10px 26px rgba(29,78,216,.28)
     }
-    button.secondary{background:#0f172a;box-shadow:0 10px 26px rgba(15,23,42,.22)}
     button.ghost{background:#fff;color:var(--txt);border:1px solid #e2e8f0;box-shadow:none}
 
     .stage{
@@ -34,11 +33,8 @@
       background:linear-gradient(180deg,#f8fafc, #eef2ff);
       box-shadow:var(--shadow)
     }
-    model-viewer{
-      width:100%;height:100%;
-      --progress-bar-color: rgba(29,78,216,.95);
-      --poster-color: transparent;
-    }
+
+    model-viewer{width:100%;height:100%;--progress-bar-color:rgba(29,78,216,.95);--poster-color:transparent;}
 
     .hud{
       position:absolute;left:50%;top:14px;transform:translateX(-50%);
@@ -57,17 +53,13 @@
       box-shadow:var(--shadow);font-size:13px
     }
     .hint .k{display:inline-block;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:2px 8px;margin:2px 4px;font-weight:700}
+
     .err{
       display:none;margin-top:8px;background:#fff;border:1px solid #fecaca;border-radius:14px;
       padding:10px 12px;color:#111827
     }
-    .err b{color:var(--danger)}
-    .err code{background:#f3f4f6;padding:2px 6px;border-radius:8px}
-
-    .footer{
-      display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
-      color:var(--muted);font-size:12px;padding:2px 4px
-    }
+    .err b{color:#b00020}
+    .footer{display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:12px;padding:2px 4px}
     a{color:var(--brand);text-decoration:none;font-weight:700}
   </style>
 </head>
@@ -79,21 +71,19 @@
         <b>التوأم الرقمي — مدينة عنه</b>
         <span id="sub">جاري التحميل…</span>
       </div>
-
       <div class="actions">
         <button class="ghost" id="btnAuto">Auto-Fit</button>
         <button class="ghost" id="btnHotspots">Hotspots</button>
-        <button class="secondary" id="btnReset">⟳ Reset</button>
+        <button id="btnReset">⟳ Reset</button>
       </div>
     </div>
 
     <div class="stage">
       <div class="hud" id="hud">
-        <span id="hudText">⏳ Loading model…</span>
+        <span id="hudText">⏳ Loading…</span>
         <div class="bar"><div id="pbar"></div></div>
       </div>
 
-      <!-- ✅ مهم: لا يوجد auto-rotate ولا disable-zoom نهائياً -->
       <model-viewer
         id="mv"
         src="./Anahcity_2.0.glb"
@@ -112,7 +102,7 @@
         tone-mapping="aces"
         shadow-intensity="0.45"
         shadow-softness="0.5"
-        style="width:100%;height:100%;background:transparent;">
+        style="background:transparent;">
       </model-viewer>
 
       <div class="hint" id="hint">
@@ -154,7 +144,6 @@
       hud.style.display = 'flex';
     }
 
-    // Progress
     mv.addEventListener('progress', (e) => {
       const total = e.detail?.totalProgress ?? 0;
       const pct = Math.max(0, Math.min(100, Math.round(total * 100)));
@@ -165,7 +154,6 @@
     });
 
     async function autoFit(){
-      // Auto-fit قوي: يضبط الكاميرا على حدود الموديل بعد التحميل
       await mv.updateComplete;
       mv.cameraTarget = 'auto auto auto';
       mv.cameraOrbit  = '45deg 65deg auto';
@@ -174,13 +162,10 @@
     }
 
     mv.addEventListener('load', async () => {
+      await autoFit();
       hudText.textContent = '✅ Loaded';
       sub.textContent = 'تم التحميل';
       pbar.style.width = '100%';
-
-      // ✅ أهم سطر لمنع "100% والمشهد فارغ"
-      await autoFit();
-
       setTimeout(()=> hud.style.display = 'none', 700);
       err.style.display = 'none';
     });
@@ -188,7 +173,7 @@
     mv.addEventListener('error', () => {
       showError(
         'model-viewer error',
-        `تأكد أن الملف موجود في نفس مجلد <code>index.html</code> وبنفس الاسم تمامًا: <code>Anahcity_2.0.glb</code>`
+        `الملف موجود لكن لم يُحمّل داخل العارض. تأكد أن الاسم تمامًا: <code>Anahcity_2.0.glb</code> وأنه في نفس مجلد <code>index.html</code>.`
       );
     });
 
@@ -203,20 +188,17 @@
         sub.textContent = 'إخفاء النقاط';
         return;
       }
-
       const hs1 = document.createElement('button');
       hs1.setAttribute('slot','hotspot-1');
       hs1.setAttribute('data-position','0m 0m 0m');
       hs1.setAttribute('data-normal','0m 1m 0m');
       hs1.textContent = 'Center';
       hs1.style.cssText = 'background:#1d4ed8;color:#fff;border:0;border-radius:999px;padding:6px 10px;font-weight:800;cursor:pointer';
-
       hs1.addEventListener('click', () => {
         mv.cameraTarget = '0m 0m 0m';
         mv.cameraOrbit = '35deg 70deg auto';
         mv.jumpCameraToGoal();
       });
-
       mv.appendChild(hs1);
       sub.textContent = 'إظهار النقاط';
     };
