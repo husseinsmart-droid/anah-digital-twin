@@ -93,31 +93,28 @@
       </div>
 
       <model-viewer
-  id="mv"
-  src=""
-  alt="Anah Digital Twin"
-  camera-controls
-  touch-action="pan-y"
-
-  auto-rotate="false"
-  rotation-per-second="0deg"
-
-  exposure="1.05"
-  shadow-intensity="0.35"
-  shadow-softness="0.7"
-  environment-image="neutral"
-
-  interaction-prompt="none"
-  loading="eager"
-  reveal="auto"
-
-  min-camera-orbit="auto auto 1m"
-  max-camera-orbit="auto auto 1200m"
-  camera-orbit="45deg 65deg auto"
-  field-of-view="45deg"
->
-</model-viewer>
-
+        id="mv"
+        src=""
+        alt="Anah Digital Twin"
+        camera-controls
+        touch-action="pan-y"
+        exposure="1.05"
+        shadow-intensity="0.35"
+        shadow-softness="0.7"
+        environment-image="neutral"
+        skybox-image=""
+        auto-rotate="false"
+        rotation-per-second="18deg"
+        interaction-prompt="none"
+        min-camera-orbit="auto auto 1m"
+        max-camera-orbit="auto auto 1200m"
+        camera-orbit="45deg 65deg 30m"
+        field-of-view="45deg"
+        loading="eager"
+        reveal="auto"
+      >
+        <!-- Poster fallback (optional) -->
+      </model-viewer>
 
       <div class="hint" id="hint">
         <div style="font-weight:800;margin-bottom:4px">التحكم:</div>
@@ -154,6 +151,14 @@
     // جرّب أكثر من اسم (اختلاف case)
     const CANDIDATES = [
       './Anahcity2_0.glb',
+      './AnahCity2_0.glb',
+      './anahcity2_0.glb',
+      './ANAHCITY2_0.glb',
+      './Anahcity2_0.GLB',
+      './AnahCity2_0.GLB',
+      './anahcity2_0.GLB',
+      './model.glb',
+      './scene.glb'
     ];
 
     function showError(title, details){
