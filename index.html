@@ -22,13 +22,11 @@
   <button id="reset">⟳ Reset</button>
   <div id="err"></div>
 
-  <!-- ✅ Use UNPKG (matches examples/js global style) -->
-  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-  <script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script type="module">
+    import * as THREE from "./vendor/three.module.js";
+    import { OrbitControls } from "./vendor/OrbitControls.js";
+    import { GLTFLoader } from "./vendor/GLTFLoader.js";
 
-  <script>
-  (function(){
     const hud = document.getElementById("hud");
     const errBox = document.getElementById("err");
 
@@ -53,13 +51,7 @@
     renderer.shadowMap.enabled = true;
     document.body.appendChild(renderer.domElement);
 
-    // ✅ OrbitControls global (examples/js) => THREE.OrbitControls
-    if (!THREE.OrbitControls) {
-      showErr("<b>OrbitControls failed to load.</b><br>CDN blocked or file not found.");
-      hud.textContent = "❌ Controls missing";
-      return;
-    }
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
     controls.maxPolarAngle = Math.PI / 2.05;
@@ -108,104 +100,48 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    function bust(url){
-      const u = new URL(url, window.location.href);
-      u.searchParams.set("v", String(Date.now()));
-      return u.toString();
-    }
-
-    // ✅ ضع اسم ملفك هنا بالضبط
-    const MODEL_FILE = "Anahcity2_0.glb";
-
-    // جرّب مسارات متعددة
-    const CANDIDATES = [
-      "./" + MODEL_FILE,
-      "/" + MODEL_FILE,
-      "./assets/" + MODEL_FILE,
-      "/assets/" + MODEL_FILE,
-      "./models/" + MODEL_FILE,
-      "/models/" + MODEL_FILE
-    ];
-
-    async function headOk(url){
-      try{
-        const r = await fetch(url, { method:"HEAD", cache:"no-store" });
-        return r.ok;
-      }catch(_){ return false; }
-    }
-
-    async function pickUrl(){
-      for (const p of CANDIDATES){
-        hud.textContent = "🔎 Checking: " + p;
-        const u = bust(p);
-        if (await headOk(u)) return u;
-      }
-      return null;
-    }
-
     // ---------- Load model ----------
-    if (!THREE.GLTFLoader) {
-      showErr("<b>GLTFLoader failed to load.</b>");
-      hud.textContent = "❌ Loader missing";
-      return;
-    }
-    const loader = new THREE.GLTFLoader();
+    const MODEL_FILE = "./Anahcity2_0.glb"; // نفس المجلد
 
-    async function load(){
-      const url = await pickUrl();
-      if (!url){
-        hud.textContent = "❌ Model not found";
-        showErr(
-          "<b>GLB not found.</b><br>" +
-          "ضع الملف <code>" + MODEL_FILE + "</code> في نفس مجلد <code>index.html</code> أو داخل <code>/assets</code> أو <code>/models</code>.<br><br>" +
-          "Tried:<br><code>" + CANDIDATES.join("</code><br><code>") + "</code>"
-        );
-        return;
-      }
+    const loader = new GLTFLoader();
+    hud.textContent = "⏳ Loading model…";
 
-      hud.textContent = "⏳ Loading model…";
-      loader.load(
-        url,
-        function(gltf){
-          model = gltf.scene;
-          model.traverse(function(o){
-            if (o && o.isMesh){
-              o.castShadow = true;
-              o.receiveShadow = true;
-            }
-          });
-          scene.add(model);
-          setCameraToModel(model);
-
-          hud.textContent = "✅ Loaded";
-          setTimeout(()=> hud.style.display="none", 1200);
-          errBox.style.display = "none";
-        },
-        function(xhr){
-          if (xhr && xhr.total){
-            const pct = Math.round((xhr.loaded / xhr.total) * 100);
-            hud.textContent = "⏳ Loading model… " + pct + "%";
-          } else {
-            hud.textContent = "⏳ Loading model…";
+    loader.load(
+      MODEL_FILE + "?v=" + Date.now(),
+      (gltf) => {
+        model = gltf.scene;
+        model.traverse((o)=>{
+          if (o && o.isMesh){
+            o.castShadow = true;
+            o.receiveShadow = true;
           }
-        },
-        function(e){
-          console.error(e);
-          hud.textContent = "❌ Failed";
-          showErr("<b>GLB load error.</b><br>URL: <code>" + url + "</code><br>افتح Console وشوف هل 404/Blocked/CORS.");
+        });
+        scene.add(model);
+        setCameraToModel(model);
+
+        hud.textContent = "✅ Loaded";
+        setTimeout(()=> hud.style.display="none", 1200);
+        errBox.style.display = "none";
+      },
+      (xhr) => {
+        if (xhr && xhr.total){
+          const pct = Math.round((xhr.loaded / xhr.total) * 100);
+          hud.textContent = "⏳ Loading model… " + pct + "%";
         }
-      );
-    }
+      },
+      (e) => {
+        console.error(e);
+        hud.textContent = "❌ Failed";
+        showErr("<b>GLB load error.</b><br>تأكد الملف موجود: <code>Anahcity2_0.glb</code> بجانب <code>index.html</code>.");
+      }
+    );
 
     function animate(){
       requestAnimationFrame(animate);
       controls.update();
       renderer.render(scene, camera);
     }
-
     animate();
-    load();
-  })();
   </script>
 </body>
 </html>
