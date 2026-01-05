@@ -2,332 +2,123 @@
 <html lang="ar">
 <head>
   <meta charset="utf-8" />
-  <title>Anah Digital Twin</title>
+  <title>التوأم الرقمي — مدينة عنه</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <script type="module"
+    src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js">
+  </script>
 
   <style>
-    :root{
-      --bg:#eef1f5; --card:#ffffff; --txt:#0f172a; --muted:#64748b;
-      --brand:#1d4ed8; --danger:#b00020; --shadow:0 14px 40px rgba(0,0,0,.12);
+    html,body{
+      margin:0;height:100%;
+      font-family:system-ui,-apple-system,Segoe UI,Arial;
+      background:#eef1f5;
     }
-    html,body{margin:0;height:100%;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Arial}
-    .wrap{position:fixed;inset:0;display:grid;grid-template-rows:auto 1fr auto;gap:12px;padding:14px}
+    .wrap{
+      position:fixed;inset:0;
+      display:grid;
+      grid-template-rows:auto 1fr;
+      gap:10px;padding:12px;
+    }
     .topbar{
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
-      background:rgba(255,255,255,.8);backdrop-filter:blur(10px);
-      border:1px solid rgba(226,232,240,.8);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow)
+      display:flex;justify-content:space-between;align-items:center;
+      background:#fff;border-radius:14px;padding:10px 14px;
+      box-shadow:0 10px 30px rgba(0,0,0,.12);
     }
-    .title{display:flex;flex-direction:column;gap:2px}
-    .title b{font-size:14px;color:var(--txt)}
-    .title span{font-size:12px;color:var(--muted)}
-    .actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-    button{
-      border:0;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:700;
-      background:var(--brand);color:#fff;box-shadow:0 10px 26px rgba(29,78,216,.28)
+    .topbar b{font-size:15px}
+    .actions button{
+      border:0;border-radius:10px;
+      padding:8px 12px;font-weight:700;
+      cursor:pointer;
     }
-    button.secondary{background:#0f172a;box-shadow:0 10px 26px rgba(15,23,42,.22)}
-    button.ghost{background:#fff;color:var(--txt);border:1px solid #e2e8f0;box-shadow:none}
+    .ghost{background:#e5e7eb}
+    .dark{background:#0f172a;color:#fff}
 
     .stage{
-      position:relative;overflow:hidden;border-radius:18px;border:1px solid rgba(226,232,240,.9);
-      background:linear-gradient(180deg,#f8fafc, #eef2ff);
-      box-shadow:var(--shadow)
+      position:relative;
+      border-radius:18px;
+      overflow:hidden;
+      background:linear-gradient(180deg,#f8fafc,#eef2ff);
+      box-shadow:0 14px 40px rgba(0,0,0,.14);
     }
-
-    /* طبقتان فوق بعض */
     model-viewer{
-      position:absolute;inset:0;width:100%;height:100%;
-      --progress-bar-color: rgba(29,78,216,.95);
-      --poster-color: transparent;
-      background:transparent;
+      width:100%;height:100%;
+      --progress-bar-color:#2563eb;
     }
-    /* الطبقة العلوية (المباني) لا تستقبل الماوس حتى لا يصير تضارب تحكم */
-    #mvBuildings{ pointer-events:none; }
 
-    /* HUD */
     .hud{
-      position:absolute;left:50%;top:14px;transform:translateX(-50%);
-      z-index:30;display:flex;align-items:center;gap:10px;
-      background:rgba(0,0,0,.70);color:#fff;padding:10px 12px;border-radius:12px;
-      max-width:92%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+      position:absolute;top:12px;left:50%;
+      transform:translateX(-50%);
+      background:rgba(0,0,0,.7);
+      color:#fff;padding:8px 12px;
+      border-radius:10px;
+      font-size:13px;
+      z-index:10;
     }
-    .bar{width:220px;height:8px;background:rgba(255,255,255,.22);border-radius:999px;overflow:hidden}
-    .bar > div{height:100%;width:0%;background:#7dd3fc}
-
-    .hint{
-      position:absolute;left:14px;bottom:14px;z-index:30;
-      background:rgba(255,255,255,.92);color:var(--txt);
-      border:1px solid rgba(226,232,240,.9);border-radius:14px;padding:10px 12px;
-      max-width:min(520px, calc(100% - 28px));
-      box-shadow:var(--shadow);font-size:13px
-    }
-    .hint .k{display:inline-block;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:2px 8px;margin:2px 4px;font-weight:700}
-    .err{
-      display:none;margin-top:8px;background:#fff;border:1px solid #fecaca;border-radius:14px;
-      padding:10px 12px;color:#111827
-    }
-    .err b{color:var(--danger)}
-    .err code{background:#f3f4f6;padding:2px 6px;border-radius:8px}
-
-    .footer{
-      display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
-      color:var(--muted);font-size:12px;padding:2px 4px
-    }
-    a{color:var(--brand);text-decoration:none;font-weight:700}
   </style>
 </head>
 
 <body>
-  <div class="wrap">
-    <div class="topbar">
-      <div class="title">
-        <b>التوأم الرقمي — مدينة عنه</b>
-        <span id="sub">جاهز للتحميل…</span>
-      </div>
+<div class="wrap">
 
-      <div class="actions">
-        <button class="ghost" id="btnAuto">Auto-Fit</button>
-        <button class="ghost" id="btnHotspots">Hotspots</button>
-        <button class="secondary" id="btnReset">⟳ Reset</button>
-      </div>
-    </div>
-
-    <div class="stage">
-      <div class="hud" id="hud">
-        <span id="hudText">⏳ Loading…</span>
-        <div class="bar"><div id="pbar"></div></div>
-      </div>
-
-      <!-- القاعدة -->
-      <model-viewer
-        id="mvBase"
-        src="./Base_0.glb"
-        alt="Anah Base"
-        camera-controls
-        touch-action="pan-y"
-        interaction-prompt="none"
-        exposure="1.05"
-        shadow-intensity="0.25"
-        shadow-softness="0.7"
-        environment-image="neutral"
-        min-camera-orbit="auto auto 1m"
-        max-camera-orbit="auto auto 1200m"
-        camera-orbit="45deg 65deg 30m"
-        field-of-view="45deg"
-        loading="eager"
-        reveal="auto"
-      ></model-viewer>
-
-      <!-- المباني (فوق القاعدة) -->
-      <model-viewer
-        id="mvBuildings"
-        src="./Buildings_0.glb"
-        alt="Anah Buildings"
-        camera-controls
-        touch-action="pan-y"
-        interaction-prompt="none"
-        exposure="1.05"
-        shadow-intensity="0.4"
-        shadow-softness="0.7"
-        environment-image="neutral"
-        min-camera-orbit="auto auto 1m"
-        max-camera-orbit="auto auto 1200m"
-        camera-orbit="45deg 65deg 30m"
-        field-of-view="45deg"
-        loading="eager"
-        reveal="auto"
-      ></model-viewer>
-
-      <div class="hint" id="hint">
-        <div style="font-weight:800;margin-bottom:4px">التحكم:</div>
-        <div>
-          <span class="k">يسار ماوس</span> تدوير ·
-          <span class="k">عجلة</span> تكبير ·
-          <span class="k">يمين ماوس</span> سحب ·
-          <span class="k">موبايل</span> سحب/قرص
-        </div>
-        <div class="err" id="err"></div>
-      </div>
-    </div>
-
-    <div class="footer">
-      <div>Digital Twin Viewer — model-viewer</div>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <a href="./Base_0.glb" id="rawBase" target="_blank" rel="noopener">Open base</a>
-        <a href="./Buildings_0.glb" id="rawBld" target="_blank" rel="noopener">Open buildings</a>
-      </div>
+  <div class="topbar">
+    <b>التوأم الرقمي — مدينة عنه</b>
+    <div class="actions">
+      <button class="ghost" id="fit">Auto-Fit</button>
+      <button class="dark" id="reset">Reset</button>
     </div>
   </div>
 
-  <script>
-    const base = document.getElementById('mvBase');
-    const bld  = document.getElementById('mvBuildings');
+  <div class="stage">
+    <div class="hud" id="hud">⏳ جاري التحميل…</div>
 
-    const hud = document.getElementById('hud');
-    const hudText = document.getElementById('hudText');
-    const pbar = document.getElementById('pbar');
-    const sub = document.getElementById('sub');
-    const err = document.getElementById('err');
+    <model-viewer
+      id="mv"
+      src="./Anahcity_0.glb"
+      camera-controls
+      interaction-prompt="none"
+      exposure="1.05"
+      shadow-intensity="0.35"
+      shadow-softness="0.7"
+      environment-image="neutral"
+      min-camera-orbit="auto auto 1m"
+      max-camera-orbit="auto auto 1500m"
+      camera-orbit="45deg 65deg auto"
+      field-of-view="45deg"
+      loading="eager"
+      reveal="auto">
+    </model-viewer>
+  </div>
 
-    const btnReset = document.getElementById('btnReset');
-    const btnAuto = document.getElementById('btnAuto');
-    const btnHotspots = document.getElementById('btnHotspots');
+</div>
 
-    // --- حالة التحميل للملفين ---
-    const st = {
-      base: { p: 0, loaded: false, failed: false },
-      bld:  { p: 0, loaded: false, failed: false }
-    };
+<script>
+  const mv = document.getElementById('mv');
+  const hud = document.getElementById('hud');
 
-    function clamp01(x){ x = Number(x); return (isFinite(x) ? Math.max(0, Math.min(1, x)) : 0); }
+  mv.addEventListener('load', () => {
+    hud.textContent = '✅ تم التحميل';
+    setTimeout(()=>hud.style.display='none',700);
+    mv.jumpCameraToGoal();
+  });
 
-    function overallProgress(){
-      // متوسط تقدّم الملفين، وإذا واحد فشل نخليه 0 حتى يظهر فشل واضح
-      const p1 = st.base.failed ? 0 : st.base.p;
-      const p2 = st.bld.failed  ? 0 : st.bld.p;
-      return (p1 + p2) / 2;
-    }
+  mv.addEventListener('error', () => {
+    hud.textContent = '❌ فشل تحميل النموذج';
+  });
 
-    function updateHUD(){
-      const pct = Math.round(overallProgress() * 100);
-      pbar.style.width = pct + '%';
+  document.getElementById('reset').onclick = () => {
+    mv.cameraOrbit = '45deg 65deg auto';
+    mv.fieldOfView = '45deg';
+    mv.jumpCameraToGoal();
+  };
 
-      if (st.base.failed || st.bld.failed){
-        hudText.textContent = '❌ Failed';
-        sub.textContent = 'فشل التحميل';
-        hud.style.display = 'flex';
-        return;
-      }
+  document.getElementById('fit').onclick = () => {
+    mv.cameraOrbit = '35deg 60deg auto';
+    mv.fieldOfView = '40deg';
+    mv.jumpCameraToGoal();
+  };
+</script>
 
-      if (st.base.loaded && st.bld.loaded){
-        hudText.textContent = '✅ Loaded';
-        sub.textContent = 'تم التحميل';
-        pbar.style.width = '100%';
-        setTimeout(()=> hud.style.display = 'none', 700);
-        return;
-      }
-
-      hudText.textContent = `⏳ Loading… ${pct}%`;
-      sub.textContent = `تحميل النموذج: ${pct}%`;
-      hud.style.display = 'flex';
-    }
-
-    function showError(title, details){
-      err.style.display = 'block';
-      err.innerHTML = `<b>خطأ:</b> ${title}<br>${details || ''}`;
-      updateHUD();
-    }
-
-    // --- اربط الكاميرا: أي تغيير على base ينسخ لـ buildings ---
-    function syncCamera(){
-      // copy orbit/target/fov عند كل حركة (خفيف وعملي)
-      bld.cameraOrbit = base.cameraOrbit;
-      bld.cameraTarget = base.cameraTarget;
-      bld.fieldOfView = base.fieldOfView;
-    }
-
-    // بعض نسخ model-viewer تطلق "camera-change"
-    base.addEventListener('camera-change', syncCamera);
-
-    // fallback: بعد أي mouse/touch حرّك مزامنة بسيطة
-    base.addEventListener('pointerup', ()=> setTimeout(syncCamera, 0));
-    base.addEventListener('touchend',  ()=> setTimeout(syncCamera, 0));
-    base.addEventListener('wheel',     ()=> setTimeout(syncCamera, 0));
-
-    // --- Progress / Load / Error لكل ملف ---
-    base.addEventListener('progress', (e)=>{
-      st.base.p = clamp01((e.detail && e.detail.totalProgress) ?? 0);
-      updateHUD();
-    });
-    bld.addEventListener('progress', (e)=>{
-      st.bld.p = clamp01((e.detail && e.detail.totalProgress) ?? 0);
-      updateHUD();
-    });
-
-    base.addEventListener('load', ()=>{
-      st.base.loaded = true;
-      st.base.p = 1;
-      // اضبط goal كاميرا ثم مزامنة
-      base.jumpCameraToGoal();
-      syncCamera();
-      updateHUD();
-    });
-    bld.addEventListener('load', ()=>{
-      st.bld.loaded = true;
-      st.bld.p = 1;
-      // خليه يتبع base
-      bld.jumpCameraToGoal();
-      syncCamera();
-      updateHUD();
-    });
-
-    base.addEventListener('error', ()=>{
-      st.base.failed = true;
-      showError(
-        'لم يتم تحميل Base_0.glb',
-        `تأكد أن الملف موجود بنفس مجلد <code>index.html</code> وبنفس الاسم تماماً: <code>Base_0.glb</code>`
-      );
-    });
-    bld.addEventListener('error', ()=>{
-      st.bld.failed = true;
-      showError(
-        'لم يتم تحميل Buildings_0.glb',
-        `تأكد أن الملف موجود بنفس مجلد <code>index.html</code> وبنفس الاسم تماماً: <code>Buildings_0.glb</code>`
-      );
-    });
-
-    // --- Buttons ---
-    btnReset.onclick = () => {
-      base.cameraOrbit = '45deg 65deg auto';
-      base.fieldOfView = '45deg';
-      base.jumpCameraToGoal();
-      syncCamera();
-    };
-
-    btnAuto.onclick = () => {
-      base.cameraOrbit = '35deg 60deg auto';
-      base.fieldOfView = '40deg';
-      base.jumpCameraToGoal();
-      syncCamera();
-    };
-
-    // Hotspots على base فقط
-    let hotspotsOn = false;
-    btnHotspots.onclick = () => {
-      hotspotsOn = !hotspotsOn;
-
-      // احذف من base
-      [...base.querySelectorAll('[slot^="hotspot-"]')].forEach(n=>n.remove());
-
-      if (!hotspotsOn){
-        sub.textContent = 'إخفاء النقاط';
-        return;
-      }
-
-      const hs1 = document.createElement('button');
-      hs1.setAttribute('slot','hotspot-1');
-      hs1.setAttribute('data-position','0m 0m 0m');
-      hs1.setAttribute('data-normal','0m 1m 0m');
-      hs1.textContent = 'Center';
-      hs1.style.cssText = 'background:#1d4ed8;color:#fff;border:0;border-radius:999px;padding:6px 10px;font-weight:800;cursor:pointer';
-
-      hs1.addEventListener('click', () => {
-        base.cameraTarget = '0m 0m 0m';
-        base.cameraOrbit = '35deg 70deg auto';
-        base.jumpCameraToGoal();
-        syncCamera();
-      });
-
-      base.appendChild(hs1);
-      sub.textContent = 'إظهار النقاط';
-    };
-
-    // Start HUD
-    hudText.textContent = '⏳ Loading…';
-    sub.textContent = 'جاري التحميل…';
-    updateHUD();
-  </script>
 </body>
 </html>
