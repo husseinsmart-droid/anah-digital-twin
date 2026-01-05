@@ -29,29 +29,35 @@
     }
     button.secondary{background:#0f172a;box-shadow:0 10px 26px rgba(15,23,42,.22)}
     button.ghost{background:#fff;color:var(--txt);border:1px solid #e2e8f0;box-shadow:none}
+
     .stage{
       position:relative;overflow:hidden;border-radius:18px;border:1px solid rgba(226,232,240,.9);
       background:linear-gradient(180deg,#f8fafc, #eef2ff);
       box-shadow:var(--shadow)
     }
+
+    /* طبقتان فوق بعض */
     model-viewer{
-      width:100%;height:100%;
+      position:absolute;inset:0;width:100%;height:100%;
       --progress-bar-color: rgba(29,78,216,.95);
       --poster-color: transparent;
       background:transparent;
     }
+    /* الطبقة العلوية (المباني) لا تستقبل الماوس حتى لا يصير تضارب تحكم */
+    #mvBuildings{ pointer-events:none; }
 
     /* HUD */
     .hud{
       position:absolute;left:50%;top:14px;transform:translateX(-50%);
-      z-index:20;display:flex;align-items:center;gap:10px;
+      z-index:30;display:flex;align-items:center;gap:10px;
       background:rgba(0,0,0,.70);color:#fff;padding:10px 12px;border-radius:12px;
       max-width:92%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
     }
     .bar{width:220px;height:8px;background:rgba(255,255,255,.22);border-radius:999px;overflow:hidden}
     .bar > div{height:100%;width:0%;background:#7dd3fc}
+
     .hint{
-      position:absolute;left:14px;bottom:14px;z-index:20;
+      position:absolute;left:14px;bottom:14px;z-index:30;
       background:rgba(255,255,255,.92);color:var(--txt);
       border:1px solid rgba(226,232,240,.9);border-radius:14px;padding:10px 12px;
       max-width:min(520px, calc(100% - 28px));
@@ -64,6 +70,7 @@
     }
     .err b{color:var(--danger)}
     .err code{background:#f3f4f6;padding:2px 6px;border-radius:8px}
+
     .footer{
       display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
       color:var(--muted);font-size:12px;padding:2px 4px
@@ -88,132 +95,217 @@
     </div>
 
     <div class="stage">
-  <model-viewer
-    id="base"
-    src="./Base_0.glb"
-    camera-controls
-    interaction-prompt="none"
-    exposure="1.05"
-    shadow-intensity="0.25"
-    environment-image="neutral"
-    style="
-      position:absolute;
-      inset:0;
-      width:100%;
-      height:100%;
-    ">
-  </model-viewer>
+      <div class="hud" id="hud">
+        <span id="hudText">⏳ Loading…</span>
+        <div class="bar"><div id="pbar"></div></div>
+      </div>
 
-  <model-viewer
-    id="buildings"
-    src="./Buildings_0.glb"
-    camera-controls
-    interaction-prompt="none"
-    exposure="1.05"
-    shadow-intensity="0.4"
-    environment-image="neutral"
-    style="
-      position:absolute;
-      inset:0;
-      width:100%;
-      height:100%;
-      pointer-events:none;
-    ">
-  </model-viewer>
-</div>
+      <!-- القاعدة -->
+      <model-viewer
+        id="mvBase"
+        src="./Base_0.glb"
+        alt="Anah Base"
+        camera-controls
+        touch-action="pan-y"
+        interaction-prompt="none"
+        exposure="1.05"
+        shadow-intensity="0.25"
+        shadow-softness="0.7"
+        environment-image="neutral"
+        min-camera-orbit="auto auto 1m"
+        max-camera-orbit="auto auto 1200m"
+        camera-orbit="45deg 65deg 30m"
+        field-of-view="45deg"
+        loading="eager"
+        reveal="auto"
+      ></model-viewer>
 
+      <!-- المباني (فوق القاعدة) -->
+      <model-viewer
+        id="mvBuildings"
+        src="./Buildings_0.glb"
+        alt="Anah Buildings"
+        camera-controls
+        touch-action="pan-y"
+        interaction-prompt="none"
+        exposure="1.05"
+        shadow-intensity="0.4"
+        shadow-softness="0.7"
+        environment-image="neutral"
+        min-camera-orbit="auto auto 1m"
+        max-camera-orbit="auto auto 1200m"
+        camera-orbit="45deg 65deg 30m"
+        field-of-view="45deg"
+        loading="eager"
+        reveal="auto"
+      ></model-viewer>
+
+      <div class="hint" id="hint">
+        <div style="font-weight:800;margin-bottom:4px">التحكم:</div>
+        <div>
+          <span class="k">يسار ماوس</span> تدوير ·
+          <span class="k">عجلة</span> تكبير ·
+          <span class="k">يمين ماوس</span> سحب ·
+          <span class="k">موبايل</span> سحب/قرص
+        </div>
+        <div class="err" id="err"></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div>Digital Twin Viewer — model-viewer</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <a href="./Base_0.glb" id="rawBase" target="_blank" rel="noopener">Open base</a>
+        <a href="./Buildings_0.glb" id="rawBld" target="_blank" rel="noopener">Open buildings</a>
+      </div>
+    </div>
+  </div>
 
   <script>
-    const mv = document.getElementById('mv');
+    const base = document.getElementById('mvBase');
+    const bld  = document.getElementById('mvBuildings');
+
     const hud = document.getElementById('hud');
     const hudText = document.getElementById('hudText');
     const pbar = document.getElementById('pbar');
     const sub = document.getElementById('sub');
     const err = document.getElementById('err');
-    const rawLink = document.getElementById('rawLink');
 
     const btnReset = document.getElementById('btnReset');
     const btnAuto = document.getElementById('btnAuto');
     const btnHotspots = document.getElementById('btnHotspots');
-    const hint = document.getElementById('hint');
 
-    // ملف واحد فقط
-    const MODEL_FILE = './Anahcity_0.glb';
+    // --- حالة التحميل للملفين ---
+    const st = {
+      base: { p: 0, loaded: false, failed: false },
+      bld:  { p: 0, loaded: false, failed: false }
+    };
+
+    function clamp01(x){ x = Number(x); return (isFinite(x) ? Math.max(0, Math.min(1, x)) : 0); }
+
+    function overallProgress(){
+      // متوسط تقدّم الملفين، وإذا واحد فشل نخليه 0 حتى يظهر فشل واضح
+      const p1 = st.base.failed ? 0 : st.base.p;
+      const p2 = st.bld.failed  ? 0 : st.bld.p;
+      return (p1 + p2) / 2;
+    }
+
+    function updateHUD(){
+      const pct = Math.round(overallProgress() * 100);
+      pbar.style.width = pct + '%';
+
+      if (st.base.failed || st.bld.failed){
+        hudText.textContent = '❌ Failed';
+        sub.textContent = 'فشل التحميل';
+        hud.style.display = 'flex';
+        return;
+      }
+
+      if (st.base.loaded && st.bld.loaded){
+        hudText.textContent = '✅ Loaded';
+        sub.textContent = 'تم التحميل';
+        pbar.style.width = '100%';
+        setTimeout(()=> hud.style.display = 'none', 700);
+        return;
+      }
+
+      hudText.textContent = `⏳ Loading… ${pct}%`;
+      sub.textContent = `تحميل النموذج: ${pct}%`;
+      hud.style.display = 'flex';
+    }
 
     function showError(title, details){
       err.style.display = 'block';
       err.innerHTML = `<b>خطأ:</b> ${title}<br>${details || ''}`;
-      hudText.textContent = '❌ Failed';
-      sub.textContent = 'فشل التحميل';
-      pbar.style.width = '0%';
-      hud.style.display = 'flex';
+      updateHUD();
     }
 
-    async function exists(url){
-      try{
-        const r = await fetch(url, { method:'GET', cache:'no-store' });
-        return r.ok;
-      }catch(e){
-        return false;
-      }
+    // --- اربط الكاميرا: أي تغيير على base ينسخ لـ buildings ---
+    function syncCamera(){
+      // copy orbit/target/fov عند كل حركة (خفيف وعملي)
+      bld.cameraOrbit = base.cameraOrbit;
+      bld.cameraTarget = base.cameraTarget;
+      bld.fieldOfView = base.fieldOfView;
     }
 
-    // Progress
-    mv.addEventListener('progress', (e) => {
-      const d = e.detail || {};
-      const total = d.totalProgress ?? 0;
-      const pct = Math.max(0, Math.min(100, Math.round(total * 100)));
-      hudText.textContent = `⏳ Loading… ${pct}%`;
-      sub.textContent = `تحميل النموذج: ${pct}%`;
-      pbar.style.width = `${pct}%`;
-      hud.style.display = 'flex';
+    // بعض نسخ model-viewer تطلق "camera-change"
+    base.addEventListener('camera-change', syncCamera);
+
+    // fallback: بعد أي mouse/touch حرّك مزامنة بسيطة
+    base.addEventListener('pointerup', ()=> setTimeout(syncCamera, 0));
+    base.addEventListener('touchend',  ()=> setTimeout(syncCamera, 0));
+    base.addEventListener('wheel',     ()=> setTimeout(syncCamera, 0));
+
+    // --- Progress / Load / Error لكل ملف ---
+    base.addEventListener('progress', (e)=>{
+      st.base.p = clamp01((e.detail && e.detail.totalProgress) ?? 0);
+      updateHUD();
+    });
+    bld.addEventListener('progress', (e)=>{
+      st.bld.p = clamp01((e.detail && e.detail.totalProgress) ?? 0);
+      updateHUD();
     });
 
-    mv.addEventListener('load', () => {
-      hudText.textContent = '✅ Loaded';
-      sub.textContent = 'تم التحميل';
-      pbar.style.width = '100%';
-      setTimeout(()=> hud.style.display = 'none', 700);
-
-      // وضعية عرض
-      mv.cameraOrbit = '45deg 65deg auto';
-      mv.fieldOfView = '45deg';
-      mv.jumpCameraToGoal();
-
-      err.style.display = 'none';
+    base.addEventListener('load', ()=>{
+      st.base.loaded = true;
+      st.base.p = 1;
+      // اضبط goal كاميرا ثم مزامنة
+      base.jumpCameraToGoal();
+      syncCamera();
+      updateHUD();
+    });
+    bld.addEventListener('load', ()=>{
+      st.bld.loaded = true;
+      st.bld.p = 1;
+      // خليه يتبع base
+      bld.jumpCameraToGoal();
+      syncCamera();
+      updateHUD();
     });
 
-    mv.addEventListener('error', () => {
+    base.addEventListener('error', ()=>{
+      st.base.failed = true;
       showError(
-        'model-viewer error',
-        `تحقق من وجود الملف داخل المستودع وبنفس الاسم:<br><code>Anahcity_0.glb</code><br>
-         ويكون بجانب <code>index.html</code>.`
+        'لم يتم تحميل Base_0.glb',
+        `تأكد أن الملف موجود بنفس مجلد <code>index.html</code> وبنفس الاسم تماماً: <code>Base_0.glb</code>`
+      );
+    });
+    bld.addEventListener('error', ()=>{
+      st.bld.failed = true;
+      showError(
+        'لم يتم تحميل Buildings_0.glb',
+        `تأكد أن الملف موجود بنفس مجلد <code>index.html</code> وبنفس الاسم تماماً: <code>Buildings_0.glb</code>`
       );
     });
 
-    // Buttons
+    // --- Buttons ---
     btnReset.onclick = () => {
-      mv.cameraOrbit = '45deg 65deg auto';
-      mv.fieldOfView = '45deg';
-      mv.jumpCameraToGoal();
+      base.cameraOrbit = '45deg 65deg auto';
+      base.fieldOfView = '45deg';
+      base.jumpCameraToGoal();
+      syncCamera();
     };
 
     btnAuto.onclick = () => {
-      mv.cameraOrbit = '35deg 60deg auto';
-      mv.fieldOfView = '40deg';
-      mv.jumpCameraToGoal();
+      base.cameraOrbit = '35deg 60deg auto';
+      base.fieldOfView = '40deg';
+      base.jumpCameraToGoal();
+      syncCamera();
     };
 
+    // Hotspots على base فقط
     let hotspotsOn = false;
     btnHotspots.onclick = () => {
       hotspotsOn = !hotspotsOn;
+
+      // احذف من base
+      [...base.querySelectorAll('[slot^="hotspot-"]')].forEach(n=>n.remove());
+
       if (!hotspotsOn){
-        [...mv.querySelectorAll('[slot^="hotspot-"]')].forEach(n=>n.remove());
         sub.textContent = 'إخفاء النقاط';
         return;
       }
 
-      // مثال نقطة (عدّلها لاحقاً)
       const hs1 = document.createElement('button');
       hs1.setAttribute('slot','hotspot-1');
       hs1.setAttribute('data-position','0m 0m 0m');
@@ -222,40 +314,20 @@
       hs1.style.cssText = 'background:#1d4ed8;color:#fff;border:0;border-radius:999px;padding:6px 10px;font-weight:800;cursor:pointer';
 
       hs1.addEventListener('click', () => {
-        mv.cameraTarget = '0m 0m 0m';
-        mv.cameraOrbit = '35deg 70deg auto';
-        mv.jumpCameraToGoal();
+        base.cameraTarget = '0m 0m 0m';
+        base.cameraOrbit = '35deg 70deg auto';
+        base.jumpCameraToGoal();
+        syncCamera();
       });
 
-      mv.appendChild(hs1);
+      base.appendChild(hs1);
       sub.textContent = 'إظهار النقاط';
     };
 
-    // Start
-    (async () => {
-      const ok = await exists(MODEL_FILE);
-      if (!ok){
-        showError(
-          'GLB not found (404)',
-          `ارفع الملف <code>Anahcity_0.glb</code> داخل نفس مجلد <code>index.html</code> في GitHub.`
-        );
-        return;
-      }
-
-      rawLink.href = MODEL_FILE;
-      hudText.textContent = `⏳ Loading: Anahcity_0.glb`;
-      sub.textContent = `تحميل: Anahcity_0.glb`;
-      mv.src = MODEL_FILE;
-
-      // إعدادات المظهر (كما هي)
-      mv.exposure = 1.05;
-      mv.shadowIntensity = 0.35;
-      mv.shadowSoftness = 0.7;
-      mv.environmentImage = 'neutral';
-      mv.style.background = 'transparent';
-
-      setTimeout(()=>{ hint.style.opacity = '0.96'; }, 1200);
-    })();
+    // Start HUD
+    hudText.textContent = '⏳ Loading…';
+    sub.textContent = 'جاري التحميل…';
+    updateHUD();
   </script>
 </body>
 </html>
