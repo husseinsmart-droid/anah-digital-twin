@@ -29,21 +29,28 @@
     }
     button.secondary{background:#0f172a;box-shadow:0 10px 26px rgba(15,23,42,.22)}
     button.ghost{background:#fff;color:var(--txt);border:1px solid #e2e8f0;box-shadow:none}
+    button.on{background:rgba(29,78,216,.10);border-color:rgba(29,78,216,.35);color:#0f172a}
     .stage{
       position:relative;overflow:hidden;border-radius:18px;border:1px solid rgba(226,232,240,.9);
       background:linear-gradient(180deg,#f8fafc, #eef2ff);
       box-shadow:var(--shadow)
     }
-    model-viewer{
-      width:100%;height:100%;
+
+    /* كل عارض فوق الثاني */
+    .mv{
+      position:absolute; inset:0;
+      width:100%; height:100%;
       --progress-bar-color: rgba(29,78,216,.95);
       --poster-color: transparent;
+      background:transparent;
     }
+    /* العارضات التابعة: بدون تفاعل */
+    .mv.follower{ pointer-events:none; }
 
     /* HUD */
     .hud{
       position:absolute;left:50%;top:14px;transform:translateX(-50%);
-      z-index:20;display:flex;align-items:center;gap:10px;
+      z-index:30;display:flex;align-items:center;gap:10px;
       background:rgba(0,0,0,.70);color:#fff;padding:10px 12px;border-radius:12px;
       max-width:92%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
     }
@@ -80,6 +87,11 @@
       </div>
 
       <div class="actions">
+        <!-- طبقات -->
+        <button class="ghost on" id="btnGround">Ground</button>
+        <button class="ghost on" id="btnRoads">Roads</button>
+        <button class="ghost on" id="btnBuildings">Buildings</button>
+
         <button class="ghost" id="btnAuto">Auto-Fit</button>
         <button class="ghost" id="btnHotspots">Hotspots</button>
         <button class="secondary" id="btnReset">⟳ Reset</button>
@@ -88,12 +100,14 @@
 
     <div class="stage">
       <div class="hud" id="hud">
-        <span id="hudText">⏳ Loading model…</span>
+        <span id="hudText">⏳ Loading…</span>
         <div class="bar"><div id="pbar"></div></div>
       </div>
 
+      <!-- NOTE: العارض الرئيسي = Buildings (هو اللي نتحكم به) -->
       <model-viewer
-        id="mv"
+        id="mvBuildings"
+        class="mv"
         src=""
         alt="Anah Digital Twin"
         camera-controls
@@ -103,7 +117,6 @@
         shadow-softness="0.7"
         environment-image="neutral"
         skybox-image=""
-        rotation-per-second="18deg"
         interaction-prompt="none"
         min-camera-orbit="auto auto 1m"
         max-camera-orbit="auto auto 1200m"
@@ -111,9 +124,36 @@
         field-of-view="45deg"
         loading="eager"
         reveal="auto"
-      >
-        <!-- Poster fallback (optional) -->
-      </model-viewer>
+      ></model-viewer>
+
+      <!-- Followers -->
+      <model-viewer
+        id="mvRoads"
+        class="mv follower"
+        src=""
+        alt="Roads layer"
+        exposure="1.05"
+        shadow-intensity="0.0"
+        environment-image="neutral"
+        skybox-image=""
+        interaction-prompt="none"
+        loading="eager"
+        reveal="auto"
+      ></model-viewer>
+
+      <model-viewer
+        id="mvGround"
+        class="mv follower"
+        src=""
+        alt="Ground layer"
+        exposure="1.05"
+        shadow-intensity="0.0"
+        environment-image="neutral"
+        skybox-image=""
+        interaction-prompt="none"
+        loading="eager"
+        reveal="auto"
+      ></model-viewer>
 
       <div class="hint" id="hint">
         <div style="font-weight:800;margin-bottom:4px">التحكم:</div>
@@ -134,7 +174,10 @@
   </div>
 
   <script>
-    const mv = document.getElementById('mv');
+    const mvB = document.getElementById('mvBuildings'); // master
+    const mvR = document.getElementById('mvRoads');
+    const mvG = document.getElementById('mvGround');
+
     const hud = document.getElementById('hud');
     const hudText = document.getElementById('hudText');
     const pbar = document.getElementById('pbar');
@@ -147,12 +190,15 @@
     const btnHotspots = document.getElementById('btnHotspots');
     const hint = document.getElementById('hint');
 
-    // جرّب أكثر من اسم (اختلاف case)
-    const CANDIDATES = [
-      './Anahcity.glb',
-      './model.glb',
-      './scene.glb'
-    ];
+    const btnGround = document.getElementById('btnGround');
+    const btnRoads = document.getElementById('btnRoads');
+    const btnBuildings = document.getElementById('btnBuildings');
+
+    const FILES = {
+      ground: './Ground_0.glb',
+      roads: './Roads_0.glb',
+      buildings: './Buildings_0.glb'
+    };
 
     function showError(title, details){
       err.style.display = 'block';
@@ -172,15 +218,23 @@
       }
     }
 
-    async function pickModel(){
-      for (const url of CANDIDATES){
-        if (await exists(url)) return url;
-      }
-      return null;
+    function syncFollowers(){
+      // مزامنة الكاميرا من العارض الرئيسي إلى التابعين
+      const orbit = mvB.cameraOrbit;
+      const target = mvB.cameraTarget;
+      const fov = mvB.fieldOfView;
+
+      mvR.cameraOrbit = orbit;
+      mvR.cameraTarget = target;
+      mvR.fieldOfView = fov;
+
+      mvG.cameraOrbit = orbit;
+      mvG.cameraTarget = target;
+      mvG.fieldOfView = fov;
     }
 
-    // Progress
-    mv.addEventListener('progress', (e) => {
+    // Progress (نعتمد على master فقط لعرض شريط التقدم)
+    mvB.addEventListener('progress', (e) => {
       const d = e.detail || {};
       const total = d.totalProgress ?? 0;
       const pct = Math.max(0, Math.min(100, Math.round(total * 100)));
@@ -190,51 +244,75 @@
       hud.style.display = 'flex';
     });
 
-    mv.addEventListener('load', () => {
+    mvB.addEventListener('load', () => {
       hudText.textContent = '✅ Loaded';
       sub.textContent = 'تم التحميل';
       pbar.style.width = '100%';
       setTimeout(()=> hud.style.display = 'none', 700);
 
-      // وضعية عرض قوية وواضحة
-      mv.cameraOrbit = '45deg 65deg auto';
-      mv.fieldOfView = '45deg';
-      mv.jumpCameraToGoal();
+      mvB.cameraOrbit = '45deg 65deg auto';
+      mvB.fieldOfView = '45deg';
+      mvB.jumpCameraToGoal();
+      syncFollowers();
 
       err.style.display = 'none';
     });
 
-    mv.addEventListener('error', () => {
+    mvB.addEventListener('error', () => {
       showError(
-        'model-viewer error',
-        `تحقق من وجود ملف GLB داخل المستودع وبنفس الاسم.<br>جرّبت: <code>${CANDIDATES.join('</code>, <code>')}</code>`
+        'Buildings layer failed',
+        `تحقق من وجود الملف: <code>${FILES.buildings}</code>`
       );
     });
 
-    // Buttons
+    // مزامنة أثناء حركة المستخدم
+    mvB.addEventListener('camera-change', () => {
+      syncFollowers();
+    });
+
+    // Buttons (تتحكم بالـ master فقط)
     btnReset.onclick = () => {
-      mv.cameraOrbit = '45deg 65deg auto';
-      mv.fieldOfView = '45deg';
-      mv.jumpCameraToGoal();
+      mvB.cameraOrbit = '45deg 65deg auto';
+      mvB.fieldOfView = '45deg';
+      mvB.jumpCameraToGoal();
+      syncFollowers();
     };
 
     btnAuto.onclick = () => {
-      mv.cameraOrbit = '35deg 60deg auto';
-      mv.fieldOfView = '40deg';
-      mv.jumpCameraToGoal();
+      mvB.cameraOrbit = '35deg 60deg auto';
+      mvB.fieldOfView = '40deg';
+      mvB.jumpCameraToGoal();
+      syncFollowers();
     };
 
+    // Layers toggle
+    function toggleLayer(btn, viewer){
+      const on = !btn.classList.contains('on');
+      if (on){
+        btn.classList.add('on');
+        viewer.style.display = 'block';
+      }else{
+        btn.classList.remove('on');
+        viewer.style.display = 'none';
+      }
+      // بعد الإخفاء/الإظهار، حافظ على التطابق
+      syncFollowers();
+    }
+
+    btnGround.onclick = () => toggleLayer(btnGround, mvG);
+    btnRoads.onclick = () => toggleLayer(btnRoads, mvR);
+    btnBuildings.onclick = () => toggleLayer(btnBuildings, mvB);
+
+    // Hotspots (على master فقط)
     let hotspotsOn = false;
     btnHotspots.onclick = () => {
       hotspotsOn = !hotspotsOn;
       if (!hotspotsOn){
-        // remove hotspots
-        [...mv.querySelectorAll('[slot^="hotspot-"]')].forEach(n=>n.remove());
+        [...mvB.querySelectorAll('[slot^="hotspot-"]')].forEach(n=>n.remove());
         sub.textContent = 'إخفاء النقاط';
         return;
       }
 
-      // مثال نقاط (عدّل الإحداثيات لاحقاً)
       const hs1 = document.createElement('button');
       hs1.setAttribute('slot','hotspot-1');
       hs1.setAttribute('data-position','0m 0m 0m');
@@ -243,38 +321,45 @@
       hs1.style.cssText = 'background:#1d4ed8;color:#fff;border:0;border-radius:999px;padding:6px 10px;font-weight:800;cursor:pointer';
 
       hs1.addEventListener('click', () => {
-        mv.cameraTarget = '0m 0m 0m';
-        mv.cameraOrbit = '35deg 70deg auto';
-        mv.jumpCameraToGoal();
+        mvB.cameraTarget = '0m 0m 0m';
+        mvB.cameraOrbit = '35deg 70deg auto';
+        mvB.jumpCameraToGoal();
+        syncFollowers();
       });
 
-      mv.appendChild(hs1);
+      mvB.appendChild(hs1);
       sub.textContent = 'إظهار النقاط';
     };
 
     // Start
     (async () => {
-      const chosen = await pickModel();
-      if (!chosen){
-        showError(
-          'GLB not found (404)',
-          `ضع ملف النموذج داخل نفس مجلد <code>index.html</code> باسم أحد التالي:<br><code>${CANDIDATES.join('</code>, <code>')}</code>`
-        );
+      // تأكد من وجود الملفات الثلاثة
+      const okB = await exists(FILES.buildings);
+      const okR = await exists(FILES.roads);
+      const okG = await exists(FILES.ground);
+
+      if (!okB){
+        showError('GLB not found (Buildings)', `ارفع الملف: <code>${FILES.buildings}</code> بجانب <code>index.html</code>`);
         return;
       }
-      rawLink.href = chosen;
-      hudText.textContent = `⏳ Loading: ${chosen.replace('./','')}`;
-      sub.textContent = `تحميل: ${chosen.replace('./','')}`;
-      mv.src = chosen;
 
-      // إعدادات “جذرية” للمظهر
-      mv.exposure = 1.05;
-      mv.shadowIntensity = 0.35;
-      mv.shadowSoftness = 0.7;
-      mv.environmentImage = 'neutral';
-      mv.style.background = 'transparent';
+      // اربط روابط “Open model” على ملف المباني (الأساسي)
+      rawLink.href = FILES.buildings;
 
-      // إخفاء التلميح بعد ثواني
+      // حمّل الطبقات
+      mvB.src = FILES.buildings;
+      if (okR) mvR.src = FILES.roads;
+      if (okG) mvG.src = FILES.ground;
+
+      // لو طبقة مفقودة لا نوقف العرض، فقط نُخفي زرها
+      if (!okR){ btnRoads.style.display = 'none'; mvR.style.display = 'none'; }
+      if (!okG){ btnGround.style.display = 'none'; mvG.style.display = 'none'; }
+
+      // إعدادات إضافية
+      mvB.style.background = 'transparent';
+      mvR.style.background = 'transparent';
+      mvG.style.background = 'transparent';
+
       setTimeout(()=>{ hint.style.opacity = '0.96'; }, 1200);
     })();
   </script>
