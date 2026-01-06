@@ -2,7 +2,7 @@
 <html lang="ar">
 <head>
   <meta charset="utf-8" />
-  <title>Anah — Cesium (Imagery fixed max zoom + Terrain)</title>
+  <title>Anah — Cesium (Aerial L18 + World Terrain)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Widgets/widgets.css">
@@ -42,24 +42,17 @@
   <div id="cesiumContainer"></div>
 
   <script>
-    // 1) ضع توكن Cesium ion هنا (ضروري للتضاريس World Terrain)
-    // من: https://ion.cesium.com/  > Access Tokens
-    Cesium.Ion.defaultAccessToken = "PUT_YOUR_ION_TOKEN_HERE";
-
-    const sub = document.getElementById("sub");
+    // ====== (1) ضع التوكن الجديد هنا ======
+    Cesium.Ion.defaultAccessToken = "PUT_NEW_ION_TOKEN_HERE";
 
     // مركز مدينة عنه
     const LAT = 34.369617;
     const LON = 41.982658;
 
-    // 2) Imagery بحد أعلى ثابت (توقف تحديث tiles بعد level=18)
-    const imagery = new Cesium.IonImageryProvider({
-      assetId: 2,        // Bing Maps Aerial (من Cesium ion)
-      maximumLevel: 18   // مهم: بعد هذا المستوى سيعمل zoom لكن بدون تحميل tiles جديدة
-    });
+    const sub = document.getElementById("sub");
 
     const viewer = new Cesium.Viewer("cesiumContainer", {
-      imageryProvider: imagery,
+      imageryProvider: false,
       baseLayerPicker: false,
       geocoder: false,
       homeButton: false,
@@ -73,51 +66,52 @@
       shouldAnimate: false
     });
 
-    // تحسينات بسيطة
-    viewer.scene.globe.depthTestAgainstTerrain = true;
-    viewer.scene.skyAtmosphere.show = true;
+    function flyHome(h=2800){
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(LON, LAT, h),
+        orientation: {
+          heading: Cesium.Math.toRadians(0),
+          pitch: Cesium.Math.toRadians(-55),
+          roll: 0.0
+        },
+        duration: 1.0
+      });
+    }
 
-    // 3) تفعيل التضاريس
     (async () => {
       try{
-        sub.textContent = "تحميل التضاريس…";
-        viewer.terrainProvider = await Cesium.createWorldTerrainAsync();
+        sub.textContent = "تحميل الصورة الفضائية…";
 
-        // تحريك الكاميرا لمركز عنه
-        sub.textContent = "تحميل الخريطة…";
-        viewer.camera.flyTo({
-          destination: Cesium.Cartesian3.fromDegrees(LON, LAT, 2500), // ارتفاع ابتدائي
-          orientation: {
-            heading: Cesium.Math.toRadians(0),
-            pitch: Cesium.Math.toRadians(-55),
-            roll: 0.0
-          },
-          duration: 1.2
+        // (2) ion imagery: Asset 2 = Bing Aerial (يدعم لحد معين حسب الخدمة)
+        const imagery = await Cesium.IonImageryProvider.fromAssetId(2, {
+          maximumLevel: 18   // مثل ما طلبت: وقف التحديث فوق 18 لكن الزوم يبقى
         });
 
-        sub.textContent = `✅ تم — Imagery max L=18 + Terrain`;
+        viewer.imageryLayers.removeAll(true);
+        viewer.imageryLayers.addImageryProvider(imagery);
+
+        sub.textContent = "تحميل التضاريس العالمية…";
+        viewer.terrainProvider = await Cesium.createWorldTerrainAsync();
+        viewer.scene.globe.depthTestAgainstTerrain = true;
+
+        sub.textContent = "✅ جاهز (Aerial L18 + Terrain)";
+        flyHome(2800);
+
       }catch(e){
         console.error(e);
-        sub.textContent = "⚠️ فشل تحميل التضاريس: تأكد من Ion Token";
+        sub.textContent = "❌ فشل تحميل ion (Token/صلاحيات).";
+        // fallback سريع حتى ما تبقى كرة زرقاء:
+        viewer.imageryLayers.removeAll(true);
+        viewer.imageryLayers.addImageryProvider(new Cesium.OpenStreetMapImageryProvider({
+          url: "https://a.tile.openstreetmap.org/"
+        }));
+        viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+        flyHome(4500);
       }
     })();
 
-    // أزرار
-    document.getElementById("btnReset").onclick = () => {
-      viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(LON, LAT, 2500),
-        orientation: { heading: 0, pitch: Cesium.Math.toRadians(-55), roll: 0.0 },
-        duration: 0.8
-      });
-    };
-
-    document.getElementById("btnAuto").onclick = () => {
-      viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(LON, LAT, 5000),
-        orientation: { heading: 0, pitch: Cesium.Math.toRadians(-65), roll: 0.0 },
-        duration: 0.8
-      });
-    };
+    document.getElementById("btnReset").onclick = () => flyHome(2800);
+    document.getElementById("btnAuto").onclick  = () => flyHome(7000);
   </script>
 </body>
 </html>
