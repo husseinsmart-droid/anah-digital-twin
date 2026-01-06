@@ -11,15 +11,17 @@
   <style>
     html,body{margin:0;height:100%;width:100%;overflow:hidden;background:#0b1220;font-family:system-ui,Segoe UI,Arial}
     #cesiumContainer{position:fixed;inset:0}
+
     .topbar{
       position:fixed;top:12px;left:12px;right:12px;z-index:10;
       display:flex;align-items:center;justify-content:space-between;gap:10px;
       background:rgba(255,255,255,.82);backdrop-filter:blur(10px);
       border:1px solid rgba(226,232,240,.85);border-radius:14px;padding:10px 12px;
     }
-    .title{display:flex;flex-direction:column;gap:2px}
+    .title{display:flex;flex-direction:column;gap:2px;min-width:220px}
     .title b{font-size:14px;color:#0f172a}
     .title span{font-size:12px;color:#64748b}
+
     .actions{display:flex;gap:8px;flex-wrap:wrap}
     button{border:0;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:800;background:#1d4ed8;color:#fff}
     button.ghost{background:#fff;color:#0f172a;border:1px solid #e2e8f0}
@@ -35,6 +37,7 @@
     </div>
     <div class="actions">
       <button class="ghost" id="btnAuto">Auto-Fit</button>
+      <button class="ghost" id="btnTerrain">Terrain x2</button>
       <button class="secondary" id="btnReset">Reset</button>
     </div>
   </div>
@@ -42,8 +45,9 @@
   <div id="cesiumContainer"></div>
 
   <script>
-    // ====== (1) ضع التوكن الجديد هنا ======
-    Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIyNWMxYmU5Ni0zZWUwLTRkNDctYjdhMC01NWY1M2RiN2U4NTUiLCJpZCI6MzU3NDMyLCJpYXQiOjE3Njc3MTUyNzB9.HBEzgBC5NskreMa2Fr6mb7cZNW74AX6XkYu-IKDw8WQ";
+    // ====== (1) ضع توكن Cesium ion هنا ======
+    Cesium.Ion.defaultAccessToken =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIyNWMxYmU5Ni0zZWUwLTRkNDctYjdhMC01NWY1M2RiN2U4NTUiLCJpZCI6MzU3NDMyLCJpYXQiOjE3Njc3MTUyNzB9.HBEzgBC5NskreMa2Fr6mb7cZNW74AX6XkYu-IKDw8WQ";
 
     // مركز مدينة عنه
     const LAT = 34.369617;
@@ -51,6 +55,7 @@
 
     const sub = document.getElementById("sub");
 
+    // Viewer (بدون اختيار طبقات)
     const viewer = new Cesium.Viewer("cesiumContainer", {
       imageryProvider: false,
       baseLayerPicker: false,
@@ -66,7 +71,13 @@
       shouldAnimate: false
     });
 
-    function flyHome(h=2800){
+    // تحسين شكل التضاريس/الإضاءة
+    viewer.scene.globe.enableLighting = true;               // يوضح التضاريس بالظل/الضوء
+    viewer.scene.fog.enabled = false;
+    viewer.scene.highDynamicRange = true;
+
+    // زرع الكاميرا على المدينة بارتفاع منخفض لكي تظهر فروقات 8م
+    function flyHome(h=650){
       viewer.camera.flyTo({
         destination: Cesium.Cartesian3.fromDegrees(LON, LAT, h),
         orientation: {
@@ -78,40 +89,75 @@
       });
     }
 
+    // لمنع أي سلوك غريب بالتحديث
+    viewer.scene.globe.depthTestAgainstTerrain = true;
+
+    // (2) تحميل الصورة + التضاريس
     (async () => {
       try{
         sub.textContent = "تحميل الصورة الفضائية…";
 
-        // (2) ion imagery: Asset 2 = Bing Aerial (يدعم لحد معين حسب الخدمة)
+        // Bing Aerial من ion
         const imagery = await Cesium.IonImageryProvider.fromAssetId(2, {
-          maximumLevel: 18   // مثل ما طلبت: وقف التحديث فوق 18 لكن الزوم يبقى
+          maximumLevel: 18   // يوقف التحديث بعد 18 لكن الزوم يبقى
         });
 
         viewer.imageryLayers.removeAll(true);
         viewer.imageryLayers.addImageryProvider(imagery);
 
         sub.textContent = "تحميل التضاريس العالمية…";
-        viewer.terrainProvider = await Cesium.createWorldTerrainAsync();
-        viewer.scene.globe.depthTestAgainstTerrain = true;
 
-        sub.textContent = "✅ جاهز (Aerial L18 + Terrain)";
-        flyHome(2800);
+        // World Terrain (Normals + Water)
+        viewer.terrainProvider = await Cesium.createWorldTerrainAsync({
+          requestVertexNormals: true,
+          requestWaterMask: true
+        });
+
+        // تأكيد نوع التضاريس في الكونسل (للتشخيص)
+        console.log("Terrain provider:", viewer.terrainProvider);
+
+        // لا تُضخم افتراضياً (خليها 1) — عندك زر للتضخيم
+        viewer.scene.globe.terrainExaggeration = 1.0;
+
+        sub.textContent = "✅ جاهز (Aerial L18 + World Terrain)";
+        flyHome(650);
 
       }catch(e){
         console.error(e);
-        sub.textContent = "❌ فشل تحميل ion (Token/صلاحيات).";
-        // fallback سريع حتى ما تبقى كرة زرقاء:
+        sub.textContent = "❌ فشل تحميل ion (Token/صلاحيات). تم استخدام بديل.";
+
+        // بديل: OSM + بدون تضاريس
         viewer.imageryLayers.removeAll(true);
         viewer.imageryLayers.addImageryProvider(new Cesium.OpenStreetMapImageryProvider({
           url: "https://a.tile.openstreetmap.org/"
         }));
         viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
-        flyHome(4500);
+        viewer.scene.globe.terrainExaggeration = 1.0;
+
+        flyHome(2500);
       }
     })();
 
-    document.getElementById("btnReset").onclick = () => flyHome(2800);
-    document.getElementById("btnAuto").onclick  = () => flyHome(7000);
+    // أزرار التحكم
+    document.getElementById("btnReset").onclick = () => flyHome(650);
+
+    document.getElementById("btnAuto").onclick  = () => {
+      // أعلى قليلاً للعرض العام
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(LON, LAT, 3000),
+        orientation: { heading: 0, pitch: Cesium.Math.toRadians(-60), roll: 0 },
+        duration: 1.0
+      });
+    };
+
+    // زر تضخيم التضاريس لإظهار فرق 8م بشكل أوضح
+    let exOn = false;
+    const btnTerrain = document.getElementById("btnTerrain");
+    btnTerrain.onclick = () => {
+      exOn = !exOn;
+      viewer.scene.globe.terrainExaggeration = exOn ? 2.0 : 1.0; // جرّب 2.0 أو 3.0 إذا تحب
+      btnTerrain.textContent = exOn ? "Terrain x1" : "Terrain x2";
+    };
   </script>
 </body>
 </html>
