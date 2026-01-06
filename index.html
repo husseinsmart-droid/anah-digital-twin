@@ -2,7 +2,7 @@
 <html lang="ar">
 <head>
   <meta charset="utf-8" />
-  <title>Anah — Cesium (Imagery fixed max zoom)</title>
+  <title>Anah — Cesium (Imagery fixed max zoom + Terrain)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Widgets/widgets.css">
@@ -28,82 +28,96 @@
 </head>
 
 <body>
-  <div id="cesiumContainer"></div>
-
   <div class="topbar">
     <div class="title">
-      <b>التوأم الرقمي — مدينة عنه (فضائي فقط)</b>
-      <span id="sub">تحميل…</span>
+      <b>التوأم الرقمي — مدينة عنه (خريطة + تضاريس)</b>
+      <span id="sub">جاري التحميل…</span>
     </div>
     <div class="actions">
       <button class="ghost" id="btnAuto">Auto-Fit</button>
-      <button class="secondary" id="btnReset">⟳ Reset</button>
+      <button class="secondary" id="btnReset">Reset</button>
     </div>
   </div>
 
+  <div id="cesiumContainer"></div>
+
   <script>
-    const LAT = 34.3696166667;
-    const LON = 41.9826583333;
+    // 1) ضع توكن Cesium ion هنا (ضروري للتضاريس World Terrain)
+    // من: https://ion.cesium.com/  > Access Tokens
+    Cesium.Ion.defaultAccessToken = "PUT_YOUR_ION_TOKEN_HERE";
 
-    // هذا هو الحد الذي عنده تتوقف تحديثات الصورة (تثبت آخر دقة)
-    const IMAGERY_MAX_LEVEL = 18;
+    const sub = document.getElementById("sub");
 
-    const sub = document.getElementById('sub');
+    // مركز مدينة عنه
+    const LAT = 34.369617;
+    const LON = 41.982658;
+
+    // 2) Imagery بحد أعلى ثابت (توقف تحديث tiles بعد level=18)
+    const imagery = new Cesium.IonImageryProvider({
+      assetId: 2,        // Bing Maps Aerial (من Cesium ion)
+      maximumLevel: 18   // مهم: بعد هذا المستوى سيعمل zoom لكن بدون تحميل tiles جديدة
+    });
 
     const viewer = new Cesium.Viewer("cesiumContainer", {
-      imageryProvider: false,
-      terrainProvider: new Cesium.EllipsoidTerrainProvider(), // بدون مناسيب حالياً
-      baseLayerPicker:false, geocoder:false, homeButton:false, sceneModePicker:false,
-      navigationHelpButton:false, timeline:false, animation:false, fullscreenButton:false,
-      infoBox:false, selectionIndicator:false, shouldAnimate:false
+      imageryProvider: imagery,
+      baseLayerPicker: false,
+      geocoder: false,
+      homeButton: false,
+      navigationHelpButton: false,
+      timeline: false,
+      animation: false,
+      sceneModePicker: false,
+      fullscreenButton: false,
+      infoBox: false,
+      selectionIndicator: false,
+      shouldAnimate: false
     });
 
-    // مهم جداً: نخلي الكاميرا تتحرك بحرية (الزوم يستمر)
-    viewer.scene.screenSpaceCameraController.minimumZoomDistance = 1;      // يسمح تقرّب جداً
-    viewer.scene.screenSpaceCameraController.maximumZoomDistance = 250000; // بعيد
+    // تحسينات بسيطة
+    viewer.scene.globe.depthTestAgainstTerrain = true;
+    viewer.scene.skyAtmosphere.show = true;
 
-    // طبقة ESRI الفضائية مع حد أقصى
-    const esri = new Cesium.UrlTemplateImageryProvider({
-      url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      tilingScheme: new Cesium.WebMercatorTilingScheme(),
-      maximumLevel: IMAGERY_MAX_LEVEL,
+    // 3) تفعيل التضاريس
+    (async () => {
+      try{
+        sub.textContent = "تحميل التضاريس…";
+        viewer.terrainProvider = await Cesium.createWorldTerrainAsync();
 
-      // الأهم: لا يحاول يخلق تايلز “وهمية” بعد الحد
-      // نخليه يثبت آخر مستوى متوفر ويكبره بدل ما يروح لرمادي
-      // (نوقف upsample من مستويات أقل)
-      // هذه الخاصية موجودة على ImageryLayer (مو على provider)
-    });
+        // تحريك الكاميرا لمركز عنه
+        sub.textContent = "تحميل الخريطة…";
+        viewer.camera.flyTo({
+          destination: Cesium.Cartesian3.fromDegrees(LON, LAT, 2500), // ارتفاع ابتدائي
+          orientation: {
+            heading: Cesium.Math.toRadians(0),
+            pitch: Cesium.Math.toRadians(-55),
+            roll: 0.0
+          },
+          duration: 1.2
+        });
 
-    const layer = viewer.imageryLayers.addImageryProvider(esri);
+        sub.textContent = `✅ تم — Imagery max L=18 + Terrain`;
+      }catch(e){
+        console.error(e);
+        sub.textContent = "⚠️ فشل تحميل التضاريس: تأكد من Ion Token";
+      }
+    })();
 
-    // المفتاح الحقيقي:
-    // عندما تكبر بعد max level، خليها "تسوّي تمديد" للتايلز المتوفرة بدل فراغ/رمادي
-    layer.minificationFilter = Cesium.TextureMinificationFilter.LINEAR;
-    layer.magnificationFilter = Cesium.TextureMagnificationFilter.LINEAR;
-
-    // يقلل ظهور رمادي أثناء التحميل، ويخلي السلوك ناعم
-    layer.show = true;
-
-    // منع ظهور "Map data not yet available" قدر الإمكان:
-    // نحدد لون/شفافية الخلفية
-    viewer.scene.globe.baseColor = Cesium.Color.BLACK;
-
-    function setHome(height){
-      viewer.camera.setView({
-        destination: Cesium.Cartesian3.fromDegrees(LON, LAT, height),
-        orientation: {
-          heading: Cesium.Math.toRadians(0),
-          pitch: Cesium.Math.toRadians(-65),
-          roll: 0
-        }
+    // أزرار
+    document.getElementById("btnReset").onclick = () => {
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(LON, LAT, 2500),
+        orientation: { heading: 0, pitch: Cesium.Math.toRadians(-55), roll: 0.0 },
+        duration: 0.8
       });
-    }
+    };
 
-    document.getElementById("btnReset").onclick = () => setHome(9000);
-    document.getElementById("btnAuto").onclick  = () => setHome(4500);
-
-    setHome(9000);
-    sub.textContent = `✅ فضائي ESRI — تحديث الدقة يتوقف عند zoom level = ${IMAGERY_MAX_LEVEL} (والزوم يبقى شغال)`;
+    document.getElementById("btnAuto").onclick = () => {
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(LON, LAT, 5000),
+        orientation: { heading: 0, pitch: Cesium.Math.toRadians(-65), roll: 0.0 },
+        duration: 0.8
+      });
+    };
   </script>
 </body>
 </html>
