@@ -2,159 +2,121 @@
 <html lang="ar">
 <head>
   <meta charset="utf-8" />
-  <title>Anah Digital Twin — Cesium</title>
+  <title>Anah Digital Twin — Cesium (Imagery only)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- CesiumJS (CDN) -->
-  <link href="https://unpkg.com/cesium/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
-  <script src="https://unpkg.com/cesium/Build/Cesium/Cesium.js"></script>
+  <!-- CesiumJS CDN -->
+  <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Widgets/widgets.css">
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Cesium.js"></script>
 
   <style>
-    html, body { margin:0; height:100%; }
-    #cesiumContainer { width:100%; height:100%; display:block; }
+    html, body { margin:0; height:100%; width:100%; overflow:hidden; background:#0b1220; font-family:system-ui,Segoe UI,Arial; }
+    #cesiumContainer { position:fixed; inset:0; }
     .topbar{
-      position:fixed; inset:12px 12px auto 12px; z-index:10;
+      position:fixed; top:12px; left:12px; right:12px;
       display:flex; align-items:center; justify-content:space-between; gap:10px;
-      background:rgba(255,255,255,.85); backdrop-filter: blur(10px);
-      border:1px solid rgba(226,232,240,.9); border-radius:14px; padding:10px 12px;
-      font-family: system-ui, -apple-system, Segoe UI, Arial;
-      box-shadow: 0 14px 40px rgba(0,0,0,.12);
+      background:rgba(255,255,255,.82); backdrop-filter:blur(10px);
+      border:1px solid rgba(226,232,240,.85); border-radius:14px;
+      padding:10px 12px; z-index:10;
     }
-    .title{display:flex;flex-direction:column;gap:2px}
-    .title b{font-size:14px}
-    .title span{font-size:12px;color:#64748b}
-    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .title{display:flex; flex-direction:column; gap:2px}
+    .title b{font-size:14px; color:#0f172a}
+    .title span{font-size:12px; color:#64748b}
+    .actions{display:flex; gap:8px; flex-wrap:wrap}
     button{
-      border:0;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:700;
-      background:#1d4ed8;color:#fff;
+      border:0; border-radius:12px; padding:10px 12px; cursor:pointer; font-weight:800;
+      background:#1d4ed8; color:#fff;
     }
-    button.ghost{background:#fff;color:#0f172a;border:1px solid #e2e8f0}
+    button.ghost{background:#fff; color:#0f172a; border:1px solid #e2e8f0}
+    button.secondary{background:#0f172a}
     .hint{
       position:fixed; left:12px; bottom:12px; z-index:10;
-      background:rgba(255,255,255,.92); border:1px solid rgba(226,232,240,.9);
-      border-radius:14px; padding:10px 12px; font-family: system-ui, -apple-system, Segoe UI, Arial;
-      box-shadow: 0 14px 40px rgba(0,0,0,.12); font-size:13px;
+      background:rgba(255,255,255,.90); border:1px solid rgba(226,232,240,.9);
+      border-radius:14px; padding:10px 12px; font-size:13px; color:#0f172a;
       max-width:min(560px, calc(100% - 24px));
     }
-    .k{display:inline-block;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:2px 8px;margin:2px 4px;font-weight:700}
+    .hint .k{display:inline-block;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:2px 8px;margin:2px 4px;font-weight:800}
   </style>
 </head>
 
 <body>
+  <div id="cesiumContainer"></div>
+
   <div class="topbar">
     <div class="title">
-      <b>التوأم الرقمي — مدينة عنه</b>
-      <span id="status">تحميل Cesium…</span>
+      <b>التوأم الرقمي — مدينة عنه (صورة فضائية فقط)</b>
+      <span id="sub">جاهز…</span>
     </div>
     <div class="actions">
-      <button class="ghost" id="btnHome">Auto-Fit</button>
-      <button id="btnReset">⟳ Reset</button>
+      <button class="ghost" id="btnAuto">Auto-Fit</button>
+      <button class="secondary" id="btnReset">⟳ Reset</button>
     </div>
   </div>
 
-  <div id="cesiumContainer"></div>
-
   <div class="hint">
-    <div style="font-weight:800;margin-bottom:4px">التحكم:</div>
+    <div style="font-weight:900;margin-bottom:4px">التحكم:</div>
     <div>
       <span class="k">يسار ماوس</span> تدوير ·
       <span class="k">يمين ماوس</span> سحب ·
       <span class="k">عجلة</span> تكبير ·
       <span class="k">موبايل</span> سحب/قرص
     </div>
-    <div style="margin-top:6px;color:#64748b">
-      إذا ما تطابق المكان: عدّل <b>LAT/LON</b> و <b>HEADING_DEG</b> و <b>SCALE</b>.
-    </div>
   </div>
 
   <script>
-    // ====== 1) إعدادات مكان نموذجك ======
-    // غيّر هذه القيم:
-    const MODEL_URL = './Anahcity.glb';   // أو ./Anahcity_0.glb حسب اسم ملفك
-    const LAT = 34.37;      // مثال — ضع خط العرض الحقيقي لمركز مشروعك
-    const LON = 41.98;      // مثال — ضع خط الطول الحقيقي لمركز مشروعك
-    const HEIGHT = 0;       // بالمتر (جرّب 0 أو 5 أو 20 إذا صار تحت الأرض)
+    // مركز مدينة عنه (من إحداثياتك)
+    // 34°22'10.62"N , 41°58'57.57"E  =>  lat=34.3696167 , lon=41.9826583
+    const LAT = 34.3696166667;
+    const LON = 41.9826583333;
 
-    // دوران النموذج (بالدرجات)
-    const HEADING_DEG = 0;  // جرّب 0 / 90 / 180 / 270 إذا اتجاهه غلط
-    const PITCH_DEG = 0;
-    const ROLL_DEG  = 0;
+    const sub = document.getElementById('sub');
 
-    // مقياس النموذج
-    const SCALE = 1.0;      // جرّب 0.5 أو 2.0 حسب وحدات CityEngine
+    // صورة فضائية بدون Ion Token (ESRI World Imagery)
+    const esriImagery = new Cesium.UrlTemplateImageryProvider({
+      url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      tilingScheme: new Cesium.WebMercatorTilingScheme(),
+      maximumLevel: 19
+    });
 
-    const statusEl = document.getElementById('status');
-
-    // ====== 2) إنشاء Viewer مع صورة فضائية افتراضية ======
-    Cesium.Ion.defaultAccessToken = ""; // (اختياري) إذا عندك Ion token ضعه هنا
-
-    const viewer = new Cesium.Viewer('cesiumContainer', {
-      terrain: Cesium.Terrain.fromWorldTerrain(), // تضاريس عالمية (اختياري)
-      timeline: false,
-      animation: false,
-      homeButton: false,
+    const viewer = new Cesium.Viewer("cesiumContainer", {
+      imageryProvider: esriImagery,
+      baseLayerPicker: false,
       geocoder: false,
+      homeButton: false,
       sceneModePicker: false,
       navigationHelpButton: false,
-      baseLayerPicker: true,   // يخليك تغيّر طبقة الخريطة
+      timeline: false,
+      animation: false,
+      fullscreenButton: false,
+      infoBox: false,
+      selectionIndicator: false,
       shouldAnimate: false
     });
 
-    // تحسين مظهر
-    viewer.scene.globe.depthTestAgainstTerrain = true;
+    // تحسينات بسيطة
+    viewer.scene.globe.depthTestAgainstTerrain = false;
+    viewer.scene.globe.enableLighting = false;
 
-    // ====== 3) إضافة النموذج GLB على إحداثيات حقيقية ======
-    const position = Cesium.Cartesian3.fromDegrees(LON, LAT, HEIGHT);
-
-    const hpr = Cesium.HeadingPitchRoll.fromDegrees(HEADING_DEG, PITCH_DEG, ROLL_DEG);
-    const orientation = Cesium.Transforms.headingPitchRollQuaternion(position, hpr);
-
-    const entity = viewer.entities.add({
-      name: 'Anahcity Model',
-      position,
-      orientation,
-      model: {
-        uri: MODEL_URL,
-        scale: SCALE,
-        minimumPixelSize: 64,
-        maximumScale: 2000
-      }
-    });
-
-    // ====== 4) توجيه الكاميرا للنموذج (Auto-Fit) ======
-    async function flyToModel(){
-      statusEl.textContent = 'تحميل النموذج…';
-      try{
-        await viewer.flyTo(entity, {
-          duration: 1.2,
-          offset: new Cesium.HeadingPitchRange(
-            Cesium.Math.toRadians(0),
-            Cesium.Math.toRadians(-35),
-            1500
-          )
-        });
-        statusEl.textContent = 'تم التحميل';
-      }catch(e){
-        console.error(e);
-        statusEl.textContent = 'فشل تحميل النموذج (تحقق من اسم الملف/المسار)';
-      }
-    }
-
-    // أزرار
-    document.getElementById('btnHome').onclick = flyToModel;
-    document.getElementById('btnReset').onclick = () => {
+    function setHome(heightMeters){
       viewer.camera.setView({
-        destination: Cesium.Cartesian3.fromDegrees(LON, LAT, 1800),
+        destination: Cesium.Cartesian3.fromDegrees(LON, LAT, heightMeters),
         orientation: {
           heading: Cesium.Math.toRadians(0),
-          pitch: Cesium.Math.toRadians(-35),
+          pitch: Cesium.Math.toRadians(-60),
           roll: 0
         }
       });
-    };
+    }
 
-    // ابدأ
-    flyToModel();
+    // بداية العرض: ارتفاع مناسب لمشاهدة المدينة
+    setHome(12000);
+    sub.textContent = `تم التموضع على مركز عنه (LAT ${LAT.toFixed(6)} , LON ${LON.toFixed(6)})`;
+
+    // أزرار
+    document.getElementById("btnReset").onclick = () => setHome(12000);
+    document.getElementById("btnAuto").onclick  = () => setHome(6000);
+
+    // ملاحظة: إضافة نموذج GLB سنفعلها بالخطوة التالية بعد التأكد أن الصورة الفضائية ظهرت بشكل صحيح.
   </script>
 </body>
 </html>
