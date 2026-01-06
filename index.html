@@ -9,99 +9,50 @@
   <script src="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Cesium.js"></script>
 
   <style>
-    html,body,#cesiumContainer{margin:0;height:100%;width:100%;overflow:hidden}
-    .topbar{
-      position:fixed;top:12px;left:12px;right:12px;z-index:10;
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
-      background:rgba(255,255,255,.85);backdrop-filter:blur(10px);
-      border:1px solid rgba(226,232,240,.9);border-radius:14px;padding:10px 12px;
-      font-family:system-ui,Segoe UI,Arial
+    html,body,#cesiumContainer {
+      margin:0;
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      font-family: system-ui;
     }
-    .title{display:flex;flex-direction:column;gap:2px}
-    .title b{font-size:14px;color:#0f172a}
-    .title span{font-size:12px;color:#64748b}
-    button{border:0;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:800;background:#0f172a;color:#fff}
   </style>
 </head>
+
 <body>
-
-<div class="topbar">
-  <div class="title">
-    <b>التوأم الرقمي — مدينة عنه</b>
-    <span id="sub">جاري التحميل…</span>
-  </div>
-  <div>
-    <button id="btnHome">Home</button>
-  </div>
-</div>
-
 <div id="cesiumContainer"></div>
 
 <script>
-  // ✅ ضع توكنك الصحيح هنا (بنفس اللي ضبطت له الدومين)
-  Cesium.Ion.defaultAccessToken = "PUT_YOUR_TOKEN_HERE";
-
-  // مركز عنه
-  const LAT = 34.369617;
-  const LON = 41.982658;
-
-  const sub = document.getElementById("sub");
+  // 🔑 ضع التوكن الجديد هنا
+  Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5MWI2NDE1Ny1kYmZmLTQ4M2UtODhhMS1jMzMxZTJlYzVmYTAiLCJpZCI6MzU3NDMyLCJpYXQiOjE3Njc3MzI5MzB9.VbBSKJn1gdXJlPnq7uYZWQPYvlY4ygr1dUpmuQa2pjw";
 
   const viewer = new Cesium.Viewer("cesiumContainer", {
-    terrainProvider: new Cesium.EllipsoidTerrainProvider(), // نخليها بسيطة الآن
+    terrainProvider: Cesium.createWorldTerrain(),
+    baseLayerPicker: false,
     timeline: false,
     animation: false,
-    baseLayerPicker: false,
-    geocoder: false,
-    homeButton: false,
-    navigationHelpButton: false,
-    sceneModePicker: false,
-    fullscreenButton: false
+    sceneModePicker: false
   });
 
-  function flyHome(h=2500){
-    viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(LON, LAT, h),
-      orientation: {
-        heading: 0,
-        pitch: Cesium.Math.toRadians(-55),
-        roll: 0
-      },
-      duration: 1.0
-    });
-  }
-
-  document.getElementById("btnHome").onclick = () => flyHome(2500);
+  // تحسين العرض
+  viewer.scene.globe.depthTestAgainstTerrain = true;
 
   (async () => {
     try {
-      sub.textContent = "تحميل النموذج من Cesium ion…";
+      // 🔹 تحميل نموذج عنه من Cesium ion
+      const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(4328518);
 
-      // ✅ هذا Asset ID الخاص بك
-      const resource = await Cesium.IonResource.fromAssetId(4328518);
+      viewer.scene.primitives.add(tileset);
 
-      // نضيفه كـ Model entity (لأنه glTF Model)
-      const entity = viewer.entities.add({
-        position: Cesium.Cartesian3.fromDegrees(LON, LAT, 0),
-        model: {
-          uri: resource,
-          scale: 1.0
-        }
-      });
+      // 🔹 الانتقال التلقائي للموديل
+      await viewer.zoomTo(tileset);
 
-      viewer.trackedEntity = entity;
-      sub.textContent = "✅ تم تحميل النموذج";
-
-      // أحياناً يحتاج لحظة حتى يظهر
-      setTimeout(()=>flyHome(2500), 600);
+      console.log("✅ Anahcity1_0 loaded successfully");
 
     } catch (e) {
-      console.error(e);
-      sub.textContent = "❌ فشل التحميل (Token/Domain/Permissions)";
-      flyHome(6000);
+      console.error("❌ Failed to load Anahcity1_0", e);
     }
   })();
 </script>
-
 </body>
 </html>
