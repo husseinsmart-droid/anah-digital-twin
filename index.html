@@ -2,181 +2,106 @@
 <html lang="ar">
 <head>
   <meta charset="utf-8" />
-  <title>Anah — Cesium + GLB</title>
+  <title>Anah Digital Twin — Cesium</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Widgets/widgets.css">
   <script src="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Cesium.js"></script>
 
   <style>
-    html,body{margin:0;height:100%;width:100%;overflow:hidden;background:#0b1220;font-family:system-ui,Segoe UI,Arial}
-    #cesiumContainer{position:fixed;inset:0}
+    html,body,#cesiumContainer{margin:0;height:100%;width:100%;overflow:hidden}
     .topbar{
       position:fixed;top:12px;left:12px;right:12px;z-index:10;
       display:flex;align-items:center;justify-content:space-between;gap:10px;
-      background:rgba(255,255,255,.86);backdrop-filter:blur(10px);
-      border:1px solid rgba(226,232,240,.85);border-radius:14px;padding:10px 12px;
+      background:rgba(255,255,255,.85);backdrop-filter:blur(10px);
+      border:1px solid rgba(226,232,240,.9);border-radius:14px;padding:10px 12px;
+      font-family:system-ui,Segoe UI,Arial
     }
     .title{display:flex;flex-direction:column;gap:2px}
     .title b{font-size:14px;color:#0f172a}
     .title span{font-size:12px;color:#64748b}
-    .actions{display:flex;gap:8px;flex-wrap:wrap}
-    button{border:0;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:800;background:#1d4ed8;color:#fff}
-    button.ghost{background:#fff;color:#0f172a;border:1px solid #e2e8f0}
-    button.secondary{background:#0f172a}
-    .note{
-      position:fixed;left:12px;bottom:12px;z-index:10;
-      background:rgba(255,255,255,.92);border:1px solid rgba(226,232,240,.9);
-      border-radius:14px;padding:10px 12px;font-size:12px;color:#0f172a;
-      max-width:min(560px, calc(100% - 24px));
-    }
-    code{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:2px 6px}
+    button{border:0;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:800;background:#0f172a;color:#fff}
   </style>
 </head>
-
 <body>
-  <div class="topbar">
-    <div class="title">
-      <b>التوأم الرقمي — مدينة عنه (خريطة + نموذج)</b>
-      <span id="sub">جاري التحميل…</span>
-    </div>
-    <div class="actions">
-      <button class="ghost" id="btnAuto">Auto-Fit</button>
-      <button class="ghost" id="btnToggle">إخفاء النموذج</button>
-      <button class="secondary" id="btnReset">Reset</button>
-    </div>
+
+<div class="topbar">
+  <div class="title">
+    <b>التوأم الرقمي — مدينة عنه</b>
+    <span id="sub">جاري التحميل…</span>
   </div>
-
-  <div id="cesiumContainer"></div>
-
-  <div class="note">
-    الملف المطلوب داخل نفس مجلد الصفحة: <code>Anahcity_0.glb</code><br>
-    إذا ظهر بمكان خاطئ: عدّل <code>SCALE</code> و <code>HEADING_DEG</code> و <code>HEIGHT_M</code>.
+  <div>
+    <button id="btnHome">Home</button>
   </div>
+</div>
 
-  <script>
-    // ====== توكن (اختياري). إذا ما تريد ion أصلاً، خلّيه فاضي. ======
-    // Cesium.Ion.defaultAccessToken = "ضع توكنك هنا إن رغبت";
+<div id="cesiumContainer"></div>
 
-    // مركز مدينة عنه
-    const LAT = 34.369617;
-    const LON = 41.982658;
+<script>
+  // ✅ ضع توكنك الصحيح هنا (بنفس اللي ضبطت له الدومين)
+  Cesium.Ion.defaultAccessToken = "PUT_YOUR_TOKEN_HERE";
 
-    // اسم ملف النموذج (بنفس المجلد)
-    const MODEL_URL = "./Anahcity_0.glb";
+  // مركز عنه
+  const LAT = 34.369617;
+  const LON = 41.982658;
 
-    // ====== إعدادات وضع النموذج (عدّلها إذا لزم) ======
-    let SCALE = 1.0;        // 1 = طبيعي. جرّب 0.2 أو 5 حسب حجم النموذج
-    let HEADING_DEG = 0;    // تدوير أفقي
-    let PITCH_DEG   = 0;
-    let ROLL_DEG    = 0;
-    let HEIGHT_M    = 0;    // ارفع النموذج إذا دخل تحت الأرض (مثلاً 5 أو 20)
+  const sub = document.getElementById("sub");
 
-    const sub = document.getElementById("sub");
+  const viewer = new Cesium.Viewer("cesiumContainer", {
+    terrainProvider: new Cesium.EllipsoidTerrainProvider(), // نخليها بسيطة الآن
+    timeline: false,
+    animation: false,
+    baseLayerPicker: false,
+    geocoder: false,
+    homeButton: false,
+    navigationHelpButton: false,
+    sceneModePicker: false,
+    fullscreenButton: false
+  });
 
-    const viewer = new Cesium.Viewer("cesiumContainer", {
-      // خريطة بدون تضاريس
-      terrainProvider: new Cesium.EllipsoidTerrainProvider(),
-
-      // نستخدم Bing Aerial من ion إن توفر، وإلا رح يشتغل الافتراضي حسب إعدادك
-      baseLayerPicker: false,
-      geocoder: false,
-      homeButton: false,
-      navigationHelpButton: false,
-      timeline: false,
-      animation: false,
-      sceneModePicker: false,
-      fullscreenButton: false,
-      infoBox: false,
-      selectionIndicator: false,
-      shouldAnimate: true
+  function flyHome(h=2500){
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(LON, LAT, h),
+      orientation: {
+        heading: 0,
+        pitch: Cesium.Math.toRadians(-55),
+        roll: 0
+      },
+      duration: 1.0
     });
+  }
 
-    // خلي المشهد واضح
-    viewer.scene.globe.depthTestAgainstTerrain = false;
-    viewer.scene.fog.enabled = false;
-    viewer.scene.globe.enableLighting = false;
+  document.getElementById("btnHome").onclick = () => flyHome(2500);
 
-    // نثبت الكاميرا على عنة
-    function flyHome(h=1200){
-      viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(LON, LAT, h),
-        orientation: {
-          heading: Cesium.Math.toRadians(0),
-          pitch: Cesium.Math.toRadians(-55),
-          roll: 0.0
-        },
-        duration: 0.8
-      });
-    }
+  (async () => {
+    try {
+      sub.textContent = "تحميل النموذج من Cesium ion…";
 
-    // تحميل/إضافة نموذج GLB
-    let modelEntity = null;
+      // ✅ هذا Asset ID الخاص بك
+      const resource = await Cesium.IonResource.fromAssetId(4328518);
 
-    async function addModel(){
-      sub.textContent = "تحميل النموذج…";
-
-      // تحقق سريع أن الملف موجود (يعطيك سبب 404 بوضوح)
-      try{
-        const r = await fetch(MODEL_URL, { method: "GET", cache: "no-store" });
-        if (!r.ok) throw new Error("HTTP " + r.status);
-      }catch(e){
-        sub.textContent = "❌ لم يتم العثور على Anahcity_0.glb (تحقق من الاسم/المسار).";
-        console.error("Model fetch failed:", e);
-        return;
-      }
-
-      const pos = Cesium.Cartesian3.fromDegrees(LON, LAT, HEIGHT_M);
-
-      const hpr = new Cesium.HeadingPitchRoll(
-        Cesium.Math.toRadians(HEADING_DEG),
-        Cesium.Math.toRadians(PITCH_DEG),
-        Cesium.Math.toRadians(ROLL_DEG)
-      );
-
-      modelEntity = viewer.entities.add({
-        name: "Anahcity_0",
-        position: pos,
-        orientation: Cesium.Transforms.headingPitchRollQuaternion(pos, hpr),
+      // نضيفه كـ Model entity (لأنه glTF Model)
+      const entity = viewer.entities.add({
+        position: Cesium.Cartesian3.fromDegrees(LON, LAT, 0),
         model: {
-          uri: MODEL_URL,
-          scale: SCALE,
-          minimumPixelSize: 64,         // يساعد على ظهوره إذا كان صغير
-          maximumScale: 5000,
-          runAnimations: true
+          uri: resource,
+          scale: 1.0
         }
       });
 
-      // انتظر تحميله ثم قرّب الكاميرا عليه
-      viewer.trackedEntity = modelEntity;
+      viewer.trackedEntity = entity;
+      sub.textContent = "✅ تم تحميل النموذج";
 
-      // بعد ثانيتين، فك التتبع وخلي تحكم طبيعي
-      setTimeout(() => { viewer.trackedEntity = undefined; }, 1800);
+      // أحياناً يحتاج لحظة حتى يظهر
+      setTimeout(()=>flyHome(2500), 600);
 
-      sub.textContent = "✅ تم تحميل الخريطة + النموذج";
+    } catch (e) {
+      console.error(e);
+      sub.textContent = "❌ فشل التحميل (Token/Domain/Permissions)";
+      flyHome(6000);
     }
+  })();
+</script>
 
-    // أزرار
-    document.getElementById("btnReset").onclick = () => flyHome(1200);
-
-    document.getElementById("btnAuto").onclick = () => {
-      if (modelEntity){
-        viewer.zoomTo(modelEntity);
-      } else {
-        flyHome(3000);
-      }
-    };
-
-    let visible = true;
-    document.getElementById("btnToggle").onclick = () => {
-      visible = !visible;
-      if (modelEntity) modelEntity.show = visible;
-      document.getElementById("btnToggle").textContent = visible ? "إخفاء النموذج" : "إظهار النموذج";
-    };
-
-    // Start
-    flyHome(1800);
-    addModel();
-  </script>
 </body>
 </html>
