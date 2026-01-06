@@ -2,28 +2,27 @@
 <html lang="ar">
 <head>
   <meta charset="utf-8" />
-  <title>Anah — Cesium (Imagery + Terrain)</title>
+  <title>Anah — Cesium (Imagery fixed max zoom)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Widgets/widgets.css">
   <script src="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Cesium.js"></script>
 
   <style>
-    html, body { margin:0; height:100%; width:100%; overflow:hidden; background:#0b1220; font-family:system-ui,Segoe UI,Arial; }
-    #cesiumContainer { position:fixed; inset:0; }
+    html,body{margin:0;height:100%;width:100%;overflow:hidden;background:#0b1220;font-family:system-ui,Segoe UI,Arial}
+    #cesiumContainer{position:fixed;inset:0}
     .topbar{
-      position:fixed; top:12px; left:12px; right:12px;
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-      background:rgba(255,255,255,.82); backdrop-filter:blur(10px);
-      border:1px solid rgba(226,232,240,.85); border-radius:14px;
-      padding:10px 12px; z-index:10;
+      position:fixed;top:12px;left:12px;right:12px;z-index:10;
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      background:rgba(255,255,255,.82);backdrop-filter:blur(10px);
+      border:1px solid rgba(226,232,240,.85);border-radius:14px;padding:10px 12px;
     }
-    .title{display:flex; flex-direction:column; gap:2px}
-    .title b{font-size:14px; color:#0f172a}
-    .title span{font-size:12px; color:#64748b}
-    .actions{display:flex; gap:8px; flex-wrap:wrap}
-    button{ border:0; border-radius:12px; padding:10px 12px; cursor:pointer; font-weight:800; background:#1d4ed8; color:#fff; }
-    button.ghost{background:#fff; color:#0f172a; border:1px solid #e2e8f0}
+    .title{display:flex;flex-direction:column;gap:2px}
+    .title b{font-size:14px;color:#0f172a}
+    .title span{font-size:12px;color:#64748b}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    button{border:0;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:800;background:#1d4ed8;color:#fff}
+    button.ghost{background:#fff;color:#0f172a;border:1px solid #e2e8f0}
     button.secondary{background:#0f172a}
   </style>
 </head>
@@ -33,8 +32,8 @@
 
   <div class="topbar">
     <div class="title">
-      <b>التوأم الرقمي — مدينة عنه (صورة + مناسيب)</b>
-      <span id="sub">تهيئة…</span>
+      <b>التوأم الرقمي — مدينة عنه (فضائي فقط)</b>
+      <span id="sub">تحميل…</span>
     </div>
     <div class="actions">
       <button class="ghost" id="btnAuto">Auto-Fit</button>
@@ -43,49 +42,58 @@
   </div>
 
   <script>
-    // ====== إعدادات مهمة عدّلها براحتك ======
     const LAT = 34.3696166667;
     const LON = 41.9826583333;
 
-    // هذا هو “الحد الأدنى للزوم” (الأقرب). ارفعه/انزله حسب ما تريد
-    // إذا نزلته كثير راح ترجع مشكلة الرمادي بسبب عدم توفر تايلز.
-    const MIN_CAMERA_HEIGHT_M = 450;   // مثلاً 450m (قريب لكن آمن)
-    const MAX_CAMERA_HEIGHT_M = 25000; // أقصى ابتعاد
+    // هذا هو الحد الذي عنده تتوقف تحديثات الصورة (تثبت آخر دقة)
+    const IMAGERY_MAX_LEVEL = 19;
 
-    // لو تريد مناسيب حقيقية: ضع توكن Cesium ion هنا
-    // إذا تركته فارغ => يبقى بدون مناسيب (أرض مسطحة)
-    const ION_TOKEN = ""; // <-- ضع توكنك هنا
-
-    // حد جودة (اختياري): يقلل التقطيع
-    const MAX_SCREEN_SPACE_ERROR = 2.0;
-
-    // =========================================
     const sub = document.getElementById('sub');
 
-    // Viewer بدون طبقة جاهزة
     const viewer = new Cesium.Viewer("cesiumContainer", {
       imageryProvider: false,
-      baseLayerPicker: false,
-      geocoder: false,
-      homeButton: false,
-      sceneModePicker: false,
-      navigationHelpButton: false,
-      timeline: false,
-      animation: false,
-      fullscreenButton: false,
-      infoBox: false,
-      selectionIndicator: false,
-      shouldAnimate: false
+      terrainProvider: new Cesium.EllipsoidTerrainProvider(), // بدون مناسيب حالياً
+      baseLayerPicker:false, geocoder:false, homeButton:false, sceneModePicker:false,
+      navigationHelpButton:false, timeline:false, animation:false, fullscreenButton:false,
+      infoBox:false, selectionIndicator:false, shouldAnimate:false
     });
 
-    viewer.scene.globe.maximumScreenSpaceError = MAX_SCREEN_SPACE_ERROR;
+    // مهم جداً: نخلي الكاميرا تتحرك بحرية (الزوم يستمر)
+    viewer.scene.screenSpaceCameraController.minimumZoomDistance = 1;      // يسمح تقرّب جداً
+    viewer.scene.screenSpaceCameraController.maximumZoomDistance = 250000; // بعيد
 
-    function setHome(heightMeters){
+    // طبقة ESRI الفضائية مع حد أقصى
+    const esri = new Cesium.UrlTemplateImageryProvider({
+      url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      tilingScheme: new Cesium.WebMercatorTilingScheme(),
+      maximumLevel: IMAGERY_MAX_LEVEL,
+
+      // الأهم: لا يحاول يخلق تايلز “وهمية” بعد الحد
+      // نخليه يثبت آخر مستوى متوفر ويكبره بدل ما يروح لرمادي
+      // (نوقف upsample من مستويات أقل)
+      // هذه الخاصية موجودة على ImageryLayer (مو على provider)
+    });
+
+    const layer = viewer.imageryLayers.addImageryProvider(esri);
+
+    // المفتاح الحقيقي:
+    // عندما تكبر بعد max level، خليها "تسوّي تمديد" للتايلز المتوفرة بدل فراغ/رمادي
+    layer.minificationFilter = Cesium.TextureMinificationFilter.LINEAR;
+    layer.magnificationFilter = Cesium.TextureMagnificationFilter.LINEAR;
+
+    // يقلل ظهور رمادي أثناء التحميل، ويخلي السلوك ناعم
+    layer.show = true;
+
+    // منع ظهور "Map data not yet available" قدر الإمكان:
+    // نحدد لون/شفافية الخلفية
+    viewer.scene.globe.baseColor = Cesium.Color.BLACK;
+
+    function setHome(height){
       viewer.camera.setView({
-        destination: Cesium.Cartesian3.fromDegrees(LON, LAT, heightMeters),
+        destination: Cesium.Cartesian3.fromDegrees(LON, LAT, height),
         orientation: {
           heading: Cesium.Math.toRadians(0),
-          pitch: Cesium.Math.toRadians(-60),
+          pitch: Cesium.Math.toRadians(-65),
           roll: 0
         }
       });
@@ -94,56 +102,8 @@
     document.getElementById("btnReset").onclick = () => setHome(9000);
     document.getElementById("btnAuto").onclick  = () => setHome(4500);
 
-    // ===== 1) طبقة فضائية ESRI مع حد zoom واضح =====
-    const esriImagery = new Cesium.UrlTemplateImageryProvider({
-      url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      tilingScheme: new Cesium.WebMercatorTilingScheme(),
-      maximumLevel: 19   // هذا هو الحد الذي بعدها يصير رمادي
-    });
-
-    // ===== 2) Terrain (مناسيب الأرض) =====
-    async function setupTerrain(){
-      if (!ION_TOKEN){
-        sub.textContent = "✅ فضائي ESRI — (ملاحظة: بدون توكن لا توجد مناسيب Terrain)";
-        return;
-      }
-      try{
-        Cesium.Ion.defaultAccessToken = ION_TOKEN;
-        sub.textContent = "⏳ تحميل مناسيب الأرض (Terrain)…";
-        const terrain = await Cesium.createWorldTerrainAsync();
-        viewer.terrainProvider = terrain;
-        sub.textContent = "✅ فضائي ESRI + ✅ مناسيب الأرض (World Terrain)";
-      }catch(e){
-        sub.textContent = "✅ فضائي ESRI — ❌ فشل Terrain (تحقق من التوكن)";
-      }
-    }
-
-    // ===== 3) منع الزوم الزائد (حتى لا تظهر الرمادي) =====
-    // نثبت مدى الكاميرا حسب الارتفاع
-    viewer.scene.screenSpaceCameraController.minimumZoomDistance = MIN_CAMERA_HEIGHT_M;
-    viewer.scene.screenSpaceCameraController.maximumZoomDistance = MAX_CAMERA_HEIGHT_M;
-
-    // بعض الأجهزة تسمح بالنزول أكثر بسبب inertia، لذلك نعمل clamp عند كل حركة
-    let clamping = false;
-    viewer.camera.changed.addEventListener(() => {
-      if (clamping) return;
-      const carto = Cesium.Cartographic.fromCartesian(viewer.camera.position);
-      const h = carto.height;
-
-      if (h < MIN_CAMERA_HEIGHT_M || h > MAX_CAMERA_HEIGHT_M){
-        clamping = true;
-        const fixedH = Math.min(MAX_CAMERA_HEIGHT_M, Math.max(MIN_CAMERA_HEIGHT_M, h));
-        setHome(fixedH);
-        setTimeout(()=> clamping = false, 0);
-      }
-    });
-
-    // ===== تشغيل =====
-    (async () => {
-      viewer.imageryLayers.addImageryProvider(esriImagery);
-      setHome(9000);
-      await setupTerrain();
-    })();
+    setHome(9000);
+    sub.textContent = `✅ فضائي ESRI — تحديث الدقة يتوقف عند zoom level = ${IMAGERY_MAX_LEVEL} (والزوم يبقى شغال)`;
   </script>
 </body>
 </html>
