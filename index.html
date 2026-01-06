@@ -2,10 +2,10 @@
 <html lang="ar">
 <head>
   <meta charset="utf-8" />
-  <title>Anah Digital Twin — Cesium (Imagery only)</title>
+  <title>Anah — Cesium (Imagery Only)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- CesiumJS CDN -->
+  <!-- CesiumJS -->
   <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Widgets/widgets.css">
   <script src="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Cesium.js"></script>
 
@@ -29,13 +29,6 @@
     }
     button.ghost{background:#fff; color:#0f172a; border:1px solid #e2e8f0}
     button.secondary{background:#0f172a}
-    .hint{
-      position:fixed; left:12px; bottom:12px; z-index:10;
-      background:rgba(255,255,255,.90); border:1px solid rgba(226,232,240,.9);
-      border-radius:14px; padding:10px 12px; font-size:13px; color:#0f172a;
-      max-width:min(560px, calc(100% - 24px));
-    }
-    .hint .k{display:inline-block;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:2px 8px;margin:2px 4px;font-weight:800}
   </style>
 </head>
 
@@ -44,8 +37,8 @@
 
   <div class="topbar">
     <div class="title">
-      <b>التوأم الرقمي — مدينة عنه (صورة فضائية فقط)</b>
-      <span id="sub">جاهز…</span>
+      <b>التوأم الرقمي — مدينة عنه (خريطة فقط)</b>
+      <span id="sub">تحميل الطبقة…</span>
     </div>
     <div class="actions">
       <button class="ghost" id="btnAuto">Auto-Fit</button>
@@ -53,33 +46,16 @@
     </div>
   </div>
 
-  <div class="hint">
-    <div style="font-weight:900;margin-bottom:4px">التحكم:</div>
-    <div>
-      <span class="k">يسار ماوس</span> تدوير ·
-      <span class="k">يمين ماوس</span> سحب ·
-      <span class="k">عجلة</span> تكبير ·
-      <span class="k">موبايل</span> سحب/قرص
-    </div>
-  </div>
-
   <script>
     // مركز مدينة عنه (من إحداثياتك)
-    // 34°22'10.62"N , 41°58'57.57"E  =>  lat=34.3696167 , lon=41.9826583
     const LAT = 34.3696166667;
     const LON = 41.9826583333;
 
     const sub = document.getElementById('sub');
 
-    // صورة فضائية بدون Ion Token (ESRI World Imagery)
-    const esriImagery = new Cesium.UrlTemplateImageryProvider({
-      url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      tilingScheme: new Cesium.WebMercatorTilingScheme(),
-      maximumLevel: 19
-    });
-
+    // أنشئ Viewer بدون طبقة جاهزة، ثم أضف الطبقة يدوياً (أسهل للفشل/البديل)
     const viewer = new Cesium.Viewer("cesiumContainer", {
-      imageryProvider: esriImagery,
+      imageryProvider: false,
       baseLayerPicker: false,
       geocoder: false,
       homeButton: false,
@@ -93,10 +69,7 @@
       shouldAnimate: false
     });
 
-    // تحسينات بسيطة
-    viewer.scene.globe.depthTestAgainstTerrain = false;
-    viewer.scene.globe.enableLighting = false;
-
+    // وظيفة تموضع
     function setHome(heightMeters){
       viewer.camera.setView({
         destination: Cesium.Cartesian3.fromDegrees(LON, LAT, heightMeters),
@@ -108,15 +81,39 @@
       });
     }
 
-    // بداية العرض: ارتفاع مناسب لمشاهدة المدينة
-    setHome(12000);
-    sub.textContent = `تم التموضع على مركز عنه (LAT ${LAT.toFixed(6)} , LON ${LON.toFixed(6)})`;
-
-    // أزرار
     document.getElementById("btnReset").onclick = () => setHome(12000);
     document.getElementById("btnAuto").onclick  = () => setHome(6000);
 
-    // ملاحظة: إضافة نموذج GLB سنفعلها بالخطوة التالية بعد التأكد أن الصورة الفضائية ظهرت بشكل صحيح.
+    // 1) حاول فضائي ESRI
+    const esriImagery = new Cesium.UrlTemplateImageryProvider({
+      url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      tilingScheme: new Cesium.WebMercatorTilingScheme(),
+      maximumLevel: 19
+    });
+
+    // 2) بديل مضمون (OSM)
+    const osmImagery = new Cesium.OpenStreetMapImageryProvider({
+      url: "https://tile.openstreetmap.org/"
+    });
+
+    async function addImageryWithFallback(){
+      try{
+        sub.textContent = "محاولة تحميل صورة فضائية (ESRI)…";
+        await esriImagery.readyPromise;
+        viewer.imageryLayers.addImageryProvider(esriImagery);
+        sub.textContent = `تم تحميل فضائي ESRI ✅ (LAT ${LAT.toFixed(6)} , LON ${LON.toFixed(6)})`;
+      }catch(e){
+        // إذا فشل ESRI لأي سبب (حجب/شبكة/CORS) ننتقل تلقائياً للـ OSM
+        viewer.imageryLayers.removeAll(true);
+        viewer.imageryLayers.addImageryProvider(osmImagery);
+        sub.textContent = "فشل الفضائي ESRI ❌ → تم التحويل تلقائياً إلى خريطة OSM ✅";
+      }
+
+      // تموضع بعد إضافة الطبقة
+      setHome(12000);
+    }
+
+    addImageryWithFallback();
   </script>
 </body>
 </html>
