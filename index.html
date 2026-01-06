@@ -2,7 +2,7 @@
 <html lang="ar">
 <head>
   <meta charset="utf-8" />
-  <title>Anah — Cesium (Aerial L18 + World Terrain)</title>
+  <title>Anah — Cesium + GLB</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Widgets/widgets.css">
@@ -11,53 +11,74 @@
   <style>
     html,body{margin:0;height:100%;width:100%;overflow:hidden;background:#0b1220;font-family:system-ui,Segoe UI,Arial}
     #cesiumContainer{position:fixed;inset:0}
-
     .topbar{
       position:fixed;top:12px;left:12px;right:12px;z-index:10;
       display:flex;align-items:center;justify-content:space-between;gap:10px;
-      background:rgba(255,255,255,.82);backdrop-filter:blur(10px);
+      background:rgba(255,255,255,.86);backdrop-filter:blur(10px);
       border:1px solid rgba(226,232,240,.85);border-radius:14px;padding:10px 12px;
     }
-    .title{display:flex;flex-direction:column;gap:2px;min-width:220px}
+    .title{display:flex;flex-direction:column;gap:2px}
     .title b{font-size:14px;color:#0f172a}
     .title span{font-size:12px;color:#64748b}
-
     .actions{display:flex;gap:8px;flex-wrap:wrap}
     button{border:0;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:800;background:#1d4ed8;color:#fff}
     button.ghost{background:#fff;color:#0f172a;border:1px solid #e2e8f0}
     button.secondary{background:#0f172a}
+    .note{
+      position:fixed;left:12px;bottom:12px;z-index:10;
+      background:rgba(255,255,255,.92);border:1px solid rgba(226,232,240,.9);
+      border-radius:14px;padding:10px 12px;font-size:12px;color:#0f172a;
+      max-width:min(560px, calc(100% - 24px));
+    }
+    code{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:2px 6px}
   </style>
 </head>
 
 <body>
   <div class="topbar">
     <div class="title">
-      <b>التوأم الرقمي — مدينة عنه (خريطة + تضاريس)</b>
+      <b>التوأم الرقمي — مدينة عنه (خريطة + نموذج)</b>
       <span id="sub">جاري التحميل…</span>
     </div>
     <div class="actions">
       <button class="ghost" id="btnAuto">Auto-Fit</button>
-      <button class="ghost" id="btnTerrain">Terrain x2</button>
+      <button class="ghost" id="btnToggle">إخفاء النموذج</button>
       <button class="secondary" id="btnReset">Reset</button>
     </div>
   </div>
 
   <div id="cesiumContainer"></div>
 
+  <div class="note">
+    الملف المطلوب داخل نفس مجلد الصفحة: <code>Anahcity_0.glb</code><br>
+    إذا ظهر بمكان خاطئ: عدّل <code>SCALE</code> و <code>HEADING_DEG</code> و <code>HEIGHT_M</code>.
+  </div>
+
   <script>
-    // ====== (1) ضع توكن Cesium ion هنا ======
-    Cesium.Ion.defaultAccessToken =
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIyNWMxYmU5Ni0zZWUwLTRkNDctYjdhMC01NWY1M2RiN2U4NTUiLCJpZCI6MzU3NDMyLCJpYXQiOjE3Njc3MTUyNzB9.HBEzgBC5NskreMa2Fr6mb7cZNW74AX6XkYu-IKDw8WQ";
+    // ====== توكن (اختياري). إذا ما تريد ion أصلاً، خلّيه فاضي. ======
+    // Cesium.Ion.defaultAccessToken = "ضع توكنك هنا إن رغبت";
 
     // مركز مدينة عنه
     const LAT = 34.369617;
     const LON = 41.982658;
 
+    // اسم ملف النموذج (بنفس المجلد)
+    const MODEL_URL = "./Anahcity_0.glb";
+
+    // ====== إعدادات وضع النموذج (عدّلها إذا لزم) ======
+    let SCALE = 1.0;        // 1 = طبيعي. جرّب 0.2 أو 5 حسب حجم النموذج
+    let HEADING_DEG = 0;    // تدوير أفقي
+    let PITCH_DEG   = 0;
+    let ROLL_DEG    = 0;
+    let HEIGHT_M    = 0;    // ارفع النموذج إذا دخل تحت الأرض (مثلاً 5 أو 20)
+
     const sub = document.getElementById("sub");
 
-    // Viewer (بدون اختيار طبقات)
     const viewer = new Cesium.Viewer("cesiumContainer", {
-      imageryProvider: false,
+      // خريطة بدون تضاريس
+      terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+
+      // نستخدم Bing Aerial من ion إن توفر، وإلا رح يشتغل الافتراضي حسب إعدادك
       baseLayerPicker: false,
       geocoder: false,
       homeButton: false,
@@ -68,16 +89,16 @@
       fullscreenButton: false,
       infoBox: false,
       selectionIndicator: false,
-      shouldAnimate: false
+      shouldAnimate: true
     });
 
-    // تحسين شكل التضاريس/الإضاءة
-    viewer.scene.globe.enableLighting = true;               // يوضح التضاريس بالظل/الضوء
+    // خلي المشهد واضح
+    viewer.scene.globe.depthTestAgainstTerrain = false;
     viewer.scene.fog.enabled = false;
-    viewer.scene.highDynamicRange = true;
+    viewer.scene.globe.enableLighting = false;
 
-    // زرع الكاميرا على المدينة بارتفاع منخفض لكي تظهر فروقات 8م
-    function flyHome(h=650){
+    // نثبت الكاميرا على عنة
+    function flyHome(h=1200){
       viewer.camera.flyTo({
         destination: Cesium.Cartesian3.fromDegrees(LON, LAT, h),
         orientation: {
@@ -85,79 +106,77 @@
           pitch: Cesium.Math.toRadians(-55),
           roll: 0.0
         },
-        duration: 1.0
+        duration: 0.8
       });
     }
 
-    // لمنع أي سلوك غريب بالتحديث
-    viewer.scene.globe.depthTestAgainstTerrain = true;
+    // تحميل/إضافة نموذج GLB
+    let modelEntity = null;
 
-    // (2) تحميل الصورة + التضاريس
-    (async () => {
+    async function addModel(){
+      sub.textContent = "تحميل النموذج…";
+
+      // تحقق سريع أن الملف موجود (يعطيك سبب 404 بوضوح)
       try{
-        sub.textContent = "تحميل الصورة الفضائية…";
-
-        // Bing Aerial من ion
-        const imagery = await Cesium.IonImageryProvider.fromAssetId(2, {
-          maximumLevel: 18   // يوقف التحديث بعد 18 لكن الزوم يبقى
-        });
-
-        viewer.imageryLayers.removeAll(true);
-        viewer.imageryLayers.addImageryProvider(imagery);
-
-        sub.textContent = "تحميل التضاريس العالمية…";
-
-        // World Terrain (Normals + Water)
-        viewer.terrainProvider = await Cesium.createWorldTerrainAsync({
-          requestVertexNormals: true,
-          requestWaterMask: true
-        });
-
-        // تأكيد نوع التضاريس في الكونسل (للتشخيص)
-        console.log("Terrain provider:", viewer.terrainProvider);
-
-        // لا تُضخم افتراضياً (خليها 1) — عندك زر للتضخيم
-        viewer.scene.globe.terrainExaggeration = 1.0;
-
-        sub.textContent = "✅ جاهز (Aerial L18 + World Terrain)";
-        flyHome(650);
-
+        const r = await fetch(MODEL_URL, { method: "GET", cache: "no-store" });
+        if (!r.ok) throw new Error("HTTP " + r.status);
       }catch(e){
-        console.error(e);
-        sub.textContent = "❌ فشل تحميل ion (Token/صلاحيات). تم استخدام بديل.";
-
-        // بديل: OSM + بدون تضاريس
-        viewer.imageryLayers.removeAll(true);
-        viewer.imageryLayers.addImageryProvider(new Cesium.OpenStreetMapImageryProvider({
-          url: "https://a.tile.openstreetmap.org/"
-        }));
-        viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
-        viewer.scene.globe.terrainExaggeration = 1.0;
-
-        flyHome(2500);
+        sub.textContent = "❌ لم يتم العثور على Anahcity_0.glb (تحقق من الاسم/المسار).";
+        console.error("Model fetch failed:", e);
+        return;
       }
-    })();
 
-    // أزرار التحكم
-    document.getElementById("btnReset").onclick = () => flyHome(650);
+      const pos = Cesium.Cartesian3.fromDegrees(LON, LAT, HEIGHT_M);
 
-    document.getElementById("btnAuto").onclick  = () => {
-      // أعلى قليلاً للعرض العام
-      viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(LON, LAT, 3000),
-        orientation: { heading: 0, pitch: Cesium.Math.toRadians(-60), roll: 0 },
-        duration: 1.0
+      const hpr = new Cesium.HeadingPitchRoll(
+        Cesium.Math.toRadians(HEADING_DEG),
+        Cesium.Math.toRadians(PITCH_DEG),
+        Cesium.Math.toRadians(ROLL_DEG)
+      );
+
+      modelEntity = viewer.entities.add({
+        name: "Anahcity_0",
+        position: pos,
+        orientation: Cesium.Transforms.headingPitchRollQuaternion(pos, hpr),
+        model: {
+          uri: MODEL_URL,
+          scale: SCALE,
+          minimumPixelSize: 64,         // يساعد على ظهوره إذا كان صغير
+          maximumScale: 5000,
+          runAnimations: true
+        }
       });
+
+      // انتظر تحميله ثم قرّب الكاميرا عليه
+      viewer.trackedEntity = modelEntity;
+
+      // بعد ثانيتين، فك التتبع وخلي تحكم طبيعي
+      setTimeout(() => { viewer.trackedEntity = undefined; }, 1800);
+
+      sub.textContent = "✅ تم تحميل الخريطة + النموذج";
+    }
+
+    // أزرار
+    document.getElementById("btnReset").onclick = () => flyHome(1200);
+
+    document.getElementById("btnAuto").onclick = () => {
+      if (modelEntity){
+        viewer.zoomTo(modelEntity);
+      } else {
+        flyHome(3000);
+      }
     };
 
-    // زر تضخيم التضاريس لإظهار فرق 8م بشكل أوضح
-    let exOn = false;
-    const btnTerrain = document.getElementById("btnTerrain");
-    btnTerrain.onclick = () => {
-      exOn = !exOn;
-      viewer.scene.globe.terrainExaggeration = exOn ? 2.0 : 1.0; // جرّب 2.0 أو 3.0 إذا تحب
-      btnTerrain.textContent = exOn ? "Terrain x1" : "Terrain x2";
+    let visible = true;
+    document.getElementById("btnToggle").onclick = () => {
+      visible = !visible;
+      if (modelEntity) modelEntity.show = visible;
+      document.getElementById("btnToggle").textContent = visible ? "إخفاء النموذج" : "إظهار النموذج";
     };
+
+    // Start
+    flyHome(1800);
+    addModel();
   </script>
 </body>
 </html>
