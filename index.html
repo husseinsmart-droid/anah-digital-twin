@@ -46,56 +46,50 @@
 
   <div id="cesiumContainer"></div>
 
-  <script>
-    /*************************************************
-     * 1) Cesium ion Access Token
-     *************************************************/
-    Cesium.Ion.defaultAccessToken =
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJjOGVmMDkwYS1jMmE4LTQ4MWMtOWYwYi00YmM1Y2ZkNmE3YTEiLCJpZCI6MzU3NDMyLCJpYXQiOjE3NjgzNjkyNDN9.iM19SaCXpeBGPs31mD3uAjT64pwI_h6Fpy2BOUkBo0A";
 
-    /*************************************************
-     * 2) إنشاء Viewer
-     *************************************************/
-    const viewer = new Cesium.Viewer("cesiumContainer", {
-      terrain: Cesium.Terrain.fromWorldTerrain(),
-      timeline: false,
-      animation: false,
-      sceneModePicker: false,
-      navigationHelpButton: false,
-      baseLayerPicker: true,
-      geocoder: true,
-      homeButton: true,
-      fullscreenButton: true
-    });
+<script>
+  // 🔑 Access Token
+  Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJjOGVmMDkwYS1jMmE4LTQ4MWMtOWYwYi00YmM1Y2ZkNmE3YTEiLCJpZCI6MzU3NDMyLCJpYXQiOjE3NjgzNjkyNDN9.iM19SaCXpeBGPs31mD3uAjT64pwI_h6Fpy2BOUkBo0A";
 
-    // تحسين الإضاءة والواقعية
-    viewer.scene.globe.enableLighting = true;
-    viewer.scene.globe.depthTestAgainstTerrain = true;
+  // Viewer
+  const viewer = new Cesium.Viewer("cesiumContainer", {
+    terrain: Cesium.Terrain.fromWorldTerrain(),
+    timeline: false,
+    animation: false,
+    sceneModePicker: false,
+    navigationHelpButton: false,
+    baseLayerPicker: true,
+    geocoder: true,
+    homeButton: true,
+    fullscreenButton: true
+  });
 
-    /*************************************************
-     * 3) تحميل التوأم الرقمي (3D Tiles)
-     * Asset ID: 4346264
-     *************************************************/
-    const anahTileset = viewer.scene.primitives.add(
-      new Cesium.Cesium3DTileset({
-        url: Cesium.IonResource.fromAssetId(4346264)
-      })
-    );
+  viewer.scene.globe.enableLighting = true;
+  viewer.scene.globe.depthTestAgainstTerrain = true;
 
-    /*************************************************
-     * 4) الانتقال تلقائياً إلى مدينة عنه
-     *************************************************/
-    anahTileset.readyPromise.then(function () {
-      viewer.zoomTo(
-        anahTileset,
-        new Cesium.HeadingPitchRange(
-          Cesium.Math.toRadians(0),     // Heading
-          Cesium.Math.toRadians(-45),   // Pitch
-          3000                          // Distance
+  (async () => {
+    try {
+      // تحميل الـ 3D Tiles
+      const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(4346264);
+      viewer.scene.primitives.add(tileset);
+
+      // انتظار الجاهزية الكاملة
+      await tileset.readyPromise;
+
+      // الذهاب الإجباري إلى موقع النموذج
+      const boundingSphere = tileset.boundingSphere;
+
+      viewer.camera.flyToBoundingSphere(boundingSphere, {
+        duration: 3.0,
+        offset: new Cesium.HeadingPitchRange(
+          Cesium.Math.toRadians(0),     // heading
+          Cesium.Math.toRadians(-45),   // pitch
+          boundingSphere.radius * 2.5
         )
-      );
-    });
+      });
 
-  </script>
-</body>
-</html>
+    } catch (error) {
+      console.error("Tileset loading error:", error);
+    }
+  })();
+</script>
