@@ -66,6 +66,24 @@
 
   viewer.scene.globe.enableLighting = true;
   viewer.scene.globe.depthTestAgainstTerrain = true;
+// 🌞 تفعيل الإضاءة الشمسية
+viewer.scene.globe.enableLighting = true;
+
+// 🌗 تفعيل الظلال
+viewer.shadows = true;
+viewer.scene.shadowMap.enabled = true;
+viewer.scene.shadowMap.softShadows = true;
+
+// 🎥 تحسين المشهد البصري
+viewer.scene.globe.depthTestAgainstTerrain = false;
+viewer.scene.highDynamicRange = true;
+
+// ⏱ ضبط وقت الشمس (يمكن تغييره لاحقًا)
+viewer.clock.currentTime = Cesium.JulianDate.fromIso8601(
+  "2026-01-15T09:30:00+03:00" // صباحًا – ظلال واضحة
+);
+viewer.clock.multiplier = 0;
+viewer.clock.shouldAnimate = false;
 
   (async () => {
     try {
