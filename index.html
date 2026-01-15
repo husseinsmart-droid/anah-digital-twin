@@ -48,48 +48,57 @@
 
 
 <script>
-  // 🔑 Access Token
-  Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJjOGVmMDkwYS1jMmE4LTQ4MWMtOWYwYi00YmM1Y2ZkNmE3YTEiLCJpZCI6MzU3NDMyLCJpYXQiOjE3NjgzNjkyNDN9.iM19SaCXpeBGPs31mD3uAjT64pwI_h6Fpy2BOUkBo0A";
+  // 🔐 توكن Cesium ion
+  Cesium.Ion.defaultAccessToken = "PUT_YOUR_TOKEN_HERE";
 
-  // Viewer
+  // 🌍 إنشاء المشهد مع أرض مسطحة افتراضيًا
   const viewer = new Cesium.Viewer("cesiumContainer", {
-    terrain: Cesium.Terrain.fromWorldTerrain(),
-    timeline: false,
-    animation: false,
-    sceneModePicker: false,
-    navigationHelpButton: false,
-    baseLayerPicker: true,
-    geocoder: true,
-    homeButton: true,
-    fullscreenButton: true
+    terrainProvider: new Cesium.EllipsoidTerrainProvider(), // ✅ أرض مسطحة
+    baseLayerPicker: true,      // السماح باختيار الخرائط
+    terrainProviderViewModels: [
+      // 🌐 أرض مسطحة
+      new Cesium.ProviderViewModel({
+        name: "WGS84 Ellipsoid (Flat)",
+        iconUrl: Cesium.buildModuleUrl("Widgets/Images/TerrainProviders/Ellipsoid.png"),
+        tooltip: "Flat Earth (No terrain)",
+        creationFunction: () =>
+          new Cesium.EllipsoidTerrainProvider(),
+      }),
+
+      // 🏔️ أرض ثلاثية الأبعاد
+      new Cesium.ProviderViewModel({
+        name: "Cesium World Terrain",
+        iconUrl: Cesium.buildModuleUrl("Widgets/Images/TerrainProviders/CesiumWorldTerrain.png"),
+        tooltip: "3D terrain",
+        creationFunction: () =>
+          Cesium.createWorldTerrain(),
+      }),
+    ],
   });
 
-  viewer.scene.globe.enableLighting = true;
-  viewer.scene.globe.depthTestAgainstTerrain = true;
+  // 🧭 الذهاب مباشرة إلى مدينة عنه
+  viewer.camera.flyTo({
+    destination: Cesium.Cartesian3.fromDegrees(
+      41.99,   // Longitude عنة
+      34.37,   // Latitude عنة
+      12000    // الارتفاع
+    ),
+    orientation: {
+      heading: 0,
+      pitch: Cesium.Math.toRadians(-45),
+      roll: 0,
+    },
+  });
 
-  (async () => {
-    try {
-      // تحميل الـ 3D Tiles
-      const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(4349771);
-      viewer.scene.primitives.add(tileset);
+  // 🌆 إضافة نموذج التوأم الرقمي (3D Tiles)
+  const anahTileset = viewer.scene.primitives.add(
+    new Cesium.Cesium3DTileset({
+      url: Cesium.IonResource.fromAssetId(4346264), // ضع Asset ID الصحيح
+    })
+  );
 
-      // انتظار الجاهزية الكاملة
-      await tileset.readyPromise;
-
-      // الذهاب الإجباري إلى موقع النموذج
-      const boundingSphere = tileset.boundingSphere;
-
-      viewer.camera.flyToBoundingSphere(boundingSphere, {
-        duration: 3.0,
-        offset: new Cesium.HeadingPitchRange(
-          Cesium.Math.toRadians(0),     // heading
-          Cesium.Math.toRadians(-45),   // pitch
-          boundingSphere.radius * 2.5
-        )
-      });
-
-    } catch (error) {
-      console.error("Tileset loading error:", error);
-    }
-  })();
+  // عند تحميل النموذج
+  anahTileset.readyPromise.then(() => {
+    viewer.zoomTo(anahTileset);
+  });
 </script>
