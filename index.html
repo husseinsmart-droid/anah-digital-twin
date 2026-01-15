@@ -80,7 +80,7 @@ viewer.scene.highDynamicRange = true;
 
 // ⏱ ضبط وقت الشمس (يمكن تغييره لاحقًا)
 viewer.clock.currentTime = Cesium.JulianDate.fromIso8601(
-  "2026-01-15T09:30:00+03:00" // صباحًا – ظلال واضحة
+  "2026-01-15T10:30:00+03:00" // صباحًا – ظلال واضحة
 );
 viewer.clock.multiplier = 0;
 viewer.clock.shouldAnimate = false;
@@ -88,7 +88,7 @@ viewer.clock.shouldAnimate = false;
   (async () => {
     try {
       // تحميل الـ 3D Tiles
-      const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(4349771);
+      const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(4352638);
       viewer.scene.primitives.add(tileset);
 
       // انتظار الجاهزية الكاملة
