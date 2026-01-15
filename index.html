@@ -53,7 +53,7 @@
 
   // Viewer
   const viewer = new Cesium.Viewer("cesiumContainer", {
-    terrain: Cesium.Terrain.fromWorldTerrain(),
+    terrainProvider: new Cesium.EllipsoidTerrainProvider(),
     timeline: false,
     animation: false,
     sceneModePicker: false,
