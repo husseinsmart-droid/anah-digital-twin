@@ -2,7 +2,7 @@
 <html lang="ar">
 <head>
 <meta charset="utf-8" />
-<title>Anah Digital Twin – Basic</title>
+<title>Anah Digital Twin – Basic + Shadows</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <link
@@ -87,7 +87,7 @@ html, body, #cesiumContainer {
 Cesium.Ion.defaultAccessToken =
 "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIyNWMxYmU5Ni0zZWUwLTRkNDctYjdhMC01NWY1M2RiN2U4NTUiLCJpZCI6MzU3NDMyLCJpYXQiOjE3Njc3MTUyNzB9.HBEzgBC5NskreMa2Fr6mb7cZNW74AX6XkYu-IKDw8WQ";
 
-// ================= VIEWER (إعدادات افتراضية فقط) =================
+// ================= VIEWER (افتراضي + ظل فقط) =================
 const viewer = new Cesium.Viewer("cesiumContainer", {
   timeline: false,
   animation: false,
@@ -96,8 +96,24 @@ const viewer = new Cesium.Viewer("cesiumContainer", {
   baseLayerPicker: true,
   geocoder: true,
   homeButton: true,
-  fullscreenButton: true
+  fullscreenButton: true,
+  shadows: true            // ✅ تفعيل الظلال
 });
+
+// ================= إعدادات الظل (فقط) =================
+viewer.shadows = true;
+viewer.scene.shadowMap.enabled = true;
+viewer.scene.shadowMap.softShadows = true;
+viewer.scene.shadowMap.darkness = 0.4;
+
+// تفعيل الشمس (ضروري للظل)
+viewer.scene.globe.enableLighting = true;
+
+// تثبيت وقت الشمس (صباح)
+viewer.clock.currentTime =
+  Cesium.JulianDate.fromIso8601("2026-01-16T10:30:00+03:00");
+viewer.clock.multiplier = 0;
+viewer.clock.shouldAnimate = false;
 
 // ================= الطبقات =================
 const layers = [
@@ -125,10 +141,14 @@ const panel = document.getElementById("layersPanel");
   for (const layer of layers) {
 
     const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(layer.assetId);
+
+    // ✅ هذا السطر أساسي لظهور الظل
+    tileset.shadows = Cesium.ShadowMode.ENABLED;
+
     viewer.scene.primitives.add(tileset);
     tileset.show = true;
 
-    // عنصر واجهة
+    // واجهة التحكم
     const item = document.createElement("div");
     item.className = "layer-item";
     item.innerHTML = `
