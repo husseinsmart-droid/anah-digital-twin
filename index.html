@@ -85,11 +85,27 @@ const viewer = new Cesium.Viewer("cesiumContainer", {
   terrainProvider: new Cesium.EllipsoidTerrainProvider(),
   timeline: false,
   animation: false,
-  baseLayerPicker: true
+sceneModePicker: false,
+  navigationHelpButton: false,
+  baseLayerPicker: true,
+  geocoder: true,
+  homeButton: true,
+  fullscreenButton: true,
+  shadows: true // ✅
 });
 
+viewer.shadows = true;
+viewer.scene.shadowMap.enabled = true;
+viewer.scene.shadowMap.softShadows = true;
+
+// تحسين بسيط
+viewer.scene.globe.depthTestAgainstTerrain = true;
 viewer.scene.globe.enableLighting = true;
-viewer.scene.highDynamicRange = true;
+
+// وقت ثابت للظل (صباح)
+viewer.clock.currentTime = Cesium.JulianDate.fromIso8601("2026-01-16T10:30:00+03:00");
+viewer.clock.multiplier = 0;
+viewer.clock.shouldAnimate = false;
 
 /* تعريف الطبقات */
 const layers = [
@@ -116,6 +132,7 @@ const panel = document.getElementById("layersPanel");
   for (const layer of layers) {
 
     const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(layer.assetId);
+    tileset.shadows = Cesium.ShadowMode.ENABLED; // ✅ مهم
     viewer.scene.primitives.add(tileset);
     tileset.show = true;
 
