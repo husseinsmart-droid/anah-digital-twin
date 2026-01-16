@@ -2,7 +2,7 @@
 <html lang="ar">
 <head>
 <meta charset="utf-8" />
-<title>Anah Digital Twin – Layers</title>
+<title>Anah Digital Twin – Stable</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <link rel="stylesheet"
@@ -81,70 +81,47 @@ html, body, #cesiumContainer {
 <div id="cesiumContainer"></div>
 
 <script>
-// ==================== TOKEN ====================
+// ================= TOKEN =================
 Cesium.Ion.defaultAccessToken =
 "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIyNWMxYmU5Ni0zZWUwLTRkNDctYjdhMC01NWY1M2RiN2U4NTUiLCJpZCI6MzU3NDMyLCJpYXQiOjE3Njc3MTUyNzB9.HBEzgBC5NskreMa2Fr6mb7cZNW74AX6XkYu-IKDw8WQ";
 
-// ==================== VIEWER ====================
+// ================= VIEWER =================
 const viewer = new Cesium.Viewer("cesiumContainer", {
-  terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+  terrainProvider: false,      // ❌ لا Terrain
   timeline: false,
   animation: false,
   sceneModePicker: false,
   navigationHelpButton: false,
-  baseLayerPicker: true,
+  baseLayerPicker: false,
   geocoder: true,
   homeButton: true,
   fullscreenButton: true,
-  shadows: true
+  shadows: false               // ❌ لا ظلال
 });
 
-// ==================== إعداد بصري مستقر ====================
+// ================= تنظيف المشهد =================
 
-// إبقاء الأرض (مهم جداً)
-viewer.scene.globe.show = true;
+// ❌ إلغاء الكرة الأرضية نهائياً
+viewer.scene.globe.show = false;
 
-// إزالة الصور الفضائية فقط
+// ❌ إلغاء الصور الفضائية
 viewer.imageryLayers.removeAll();
 
-// إضاءة ثابتة قريبة من CityEngine
-viewer.scene.globe.enableLighting = false;
+// 🎨 إعداد بصري تخطيطي (مثل CityEngine)
 viewer.scene.highDynamicRange = false;
 viewer.scene.toneMapping = Cesium.ToneMapping.NONE;
 viewer.scene.gamma = 1.0;
 
-// تحسين الألوان
 viewer.scene.colorCorrection.show = true;
 viewer.scene.colorCorrection.brightness = 1.05;
 viewer.scene.colorCorrection.contrast = 1.1;
 viewer.scene.colorCorrection.saturation = 1.25;
 
-// تثبيت الشمس (مرة واحدة)
-viewer.clock.currentTime =
-  Cesium.JulianDate.fromIso8601("2026-01-16T12:00:00+03:00");
-viewer.clock.multiplier = 0;
+// منع أي حسابات شمسية
+viewer.scene.globe.enableLighting = false;
 viewer.clock.shouldAnimate = false;
 
-// الظلال
-viewer.shadows = true;
-viewer.scene.shadowMap.enabled = true;
-viewer.scene.shadowMap.darkness = 0.35;
-viewer.scene.shadowMap.softShadows = true;
-
-  // إبقاء الأرض كمرجع فيزيائي
-viewer.scene.globe.show = true;
-
-// إزالة الصور الفضائية
-viewer.imageryLayers.removeAll();
-
-// جعل لون الأرض شفاف (مهم جداً)
-viewer.scene.globe.baseColor = Cesium.Color.TRANSPARENT;
-
-// السماح للـ Tiles بالظهور فوق الأرض
-viewer.scene.globe.depthTestAgainstTerrain = true;
-
-
-// ==================== الطبقات ====================
+// ================= الطبقات =================
 const layers = [
   { name: "Residential",  color: "#FFF59D", assetId: 4355603 },
   { name: "Commercial",   color: "#E53935", assetId: 4355604 },
@@ -163,15 +140,13 @@ const layers = [
 
 const panel = document.getElementById("layersPanel");
 
-// ==================== تحميل الطبقات ====================
+// ================= تحميل الطبقات =================
 (async () => {
   let firstTileset = null;
 
   for (const layer of layers) {
 
     const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(layer.assetId);
-    tileset.shadows = Cesium.ShadowMode.ENABLED;
-
     viewer.scene.primitives.add(tileset);
     tileset.show = true;
 
@@ -190,6 +165,7 @@ const panel = document.getElementById("layersPanel");
 
     panel.appendChild(item);
 
+    // توجيه الكاميرا مرة واحدة
     if (!firstTileset) {
       firstTileset = tileset;
       await tileset.readyPromise;
