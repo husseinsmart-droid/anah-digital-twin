@@ -2,11 +2,13 @@
 <html lang="ar">
 <head>
 <meta charset="utf-8" />
-<title>Anah Digital Twin – Stable</title>
+<title>Anah Digital Twin – Basic</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<link rel="stylesheet"
-  href="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Widgets/widgets.css" />
+<link
+  rel="stylesheet"
+  href="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Widgets/widgets.css"
+/>
 <script src="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Cesium.js"></script>
 
 <style>
@@ -85,41 +87,17 @@ html, body, #cesiumContainer {
 Cesium.Ion.defaultAccessToken =
 "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIyNWMxYmU5Ni0zZWUwLTRkNDctYjdhMC01NWY1M2RiN2U4NTUiLCJpZCI6MzU3NDMyLCJpYXQiOjE3Njc3MTUyNzB9.HBEzgBC5NskreMa2Fr6mb7cZNW74AX6XkYu-IKDw8WQ";
 
-// ================= VIEWER =================
+// ================= VIEWER (إعدادات افتراضية فقط) =================
 const viewer = new Cesium.Viewer("cesiumContainer", {
-  terrainProvider: false,      // ❌ لا Terrain
   timeline: false,
   animation: false,
   sceneModePicker: false,
   navigationHelpButton: false,
-  baseLayerPicker: false,
+  baseLayerPicker: true,
   geocoder: true,
   homeButton: true,
-  fullscreenButton: true,
-  shadows: false               // ❌ لا ظلال
+  fullscreenButton: true
 });
-
-// ================= تنظيف المشهد =================
-
-// ❌ إلغاء الكرة الأرضية نهائياً
-viewer.scene.globe.show = false;
-
-// ❌ إلغاء الصور الفضائية
-viewer.imageryLayers.removeAll();
-
-// 🎨 إعداد بصري تخطيطي (مثل CityEngine)
-viewer.scene.highDynamicRange = false;
-viewer.scene.toneMapping = Cesium.ToneMapping.NONE;
-viewer.scene.gamma = 1.0;
-
-viewer.scene.colorCorrection.show = true;
-viewer.scene.colorCorrection.brightness = 1.05;
-viewer.scene.colorCorrection.contrast = 1.1;
-viewer.scene.colorCorrection.saturation = 1.25;
-
-// منع أي حسابات شمسية
-viewer.scene.globe.enableLighting = false;
-viewer.clock.shouldAnimate = false;
 
 // ================= الطبقات =================
 const layers = [
@@ -150,7 +128,7 @@ const panel = document.getElementById("layersPanel");
     viewer.scene.primitives.add(tileset);
     tileset.show = true;
 
-    // واجهة التحكم
+    // عنصر واجهة
     const item = document.createElement("div");
     item.className = "layer-item";
     item.innerHTML = `
@@ -165,7 +143,7 @@ const panel = document.getElementById("layersPanel");
 
     panel.appendChild(item);
 
-    // توجيه الكاميرا مرة واحدة
+    // توجيه الكاميرا أول مرة فقط
     if (!firstTileset) {
       firstTileset = tileset;
       await tileset.readyPromise;
