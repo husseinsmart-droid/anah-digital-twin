@@ -11,11 +11,14 @@
 
 <style>
 html, body, #cesiumContainer {
-  margin: 0; padding: 0;
-  width: 100%; height: 100%;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
   font-family: system-ui, Arial;
 }
 
+/* العنوان */
 .topbar {
   position: absolute;
   top: 10px;
@@ -78,40 +81,33 @@ html, body, #cesiumContainer {
 <div id="cesiumContainer"></div>
 
 <script>
+// ==================== TOKEN ====================
 Cesium.Ion.defaultAccessToken =
 "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIyNWMxYmU5Ni0zZWUwLTRkNDctYjdhMC01NWY1M2RiN2U4NTUiLCJpZCI6MzU3NDMyLCJpYXQiOjE3Njc3MTUyNzB9.HBEzgBC5NskreMa2Fr6mb7cZNW74AX6XkYu-IKDw8WQ";
 
+// ==================== VIEWER ====================
 const viewer = new Cesium.Viewer("cesiumContainer", {
   terrainProvider: new Cesium.EllipsoidTerrainProvider(),
   timeline: false,
   animation: false,
-sceneModePicker: false,
+  sceneModePicker: false,
   navigationHelpButton: false,
   baseLayerPicker: true,
   geocoder: true,
   homeButton: true,
   fullscreenButton: true,
-  shadows: true // ✅
+  shadows: true
 });
 
-viewer.shadows = true;
-viewer.scene.shadowMap.enabled = true;
-viewer.scene.shadowMap.softShadows = true;
+// ==================== إعداد بصري مستقر ====================
 
-// تحسين بسيط
-viewer.scene.globe.depthTestAgainstTerrain = true;
-viewer.scene.globe.enableLighting = true;
+// إبقاء الأرض (مهم جداً)
+viewer.scene.globe.show = true;
 
-// وقت ثابت للظل (صباح)
-viewer.clock.currentTime = Cesium.JulianDate.fromIso8601("2026-01-16T10:30:00+03:00");
-viewer.clock.multiplier = 0;
-viewer.clock.shouldAnimate = false;
-
-  // تنظيف المشهد
+// إزالة الصور الفضائية فقط
 viewer.imageryLayers.removeAll();
-viewer.scene.globe.show = false;
 
-// إضاءة أقرب لـ CityEngine
+// إضاءة ثابتة قريبة من CityEngine
 viewer.scene.globe.enableLighting = false;
 viewer.scene.highDynamicRange = false;
 viewer.scene.toneMapping = Cesium.ToneMapping.NONE;
@@ -123,8 +119,9 @@ viewer.scene.colorCorrection.brightness = 1.05;
 viewer.scene.colorCorrection.contrast = 1.1;
 viewer.scene.colorCorrection.saturation = 1.25;
 
-// الشمس
-viewer.clock.currentTime = Cesium.JulianDate.fromIso8601("2026-01-16T12:00:00+03:00");
+// تثبيت الشمس (مرة واحدة)
+viewer.clock.currentTime =
+  Cesium.JulianDate.fromIso8601("2026-01-16T12:00:00+03:00");
 viewer.clock.multiplier = 0;
 viewer.clock.shouldAnimate = false;
 
@@ -134,7 +131,7 @@ viewer.scene.shadowMap.enabled = true;
 viewer.scene.shadowMap.darkness = 0.35;
 viewer.scene.shadowMap.softShadows = true;
 
-/* تعريف الطبقات */
+// ==================== الطبقات ====================
 const layers = [
   { name: "Residential",  color: "#FFF59D", assetId: 4355603 },
   { name: "Commercial",   color: "#E53935", assetId: 4355604 },
@@ -151,24 +148,23 @@ const layers = [
   { name: "Roads",        color: "#9E9E9E", assetId: 4355615 }
 ];
 
-const tilesets = {};
 const panel = document.getElementById("layersPanel");
 
-/* تحميل الطبقات + إنشاء واجهة التحكم */
+// ==================== تحميل الطبقات ====================
 (async () => {
+  let firstTileset = null;
+
   for (const layer of layers) {
 
     const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(layer.assetId);
-    tileset.shadows = Cesium.ShadowMode.ENABLED; // ✅ مهم
+    tileset.shadows = Cesium.ShadowMode.ENABLED;
+
     viewer.scene.primitives.add(tileset);
     tileset.show = true;
 
-    tilesets[layer.name] = tileset;
-
-    /* عنصر واجهة */
+    // واجهة التحكم
     const item = document.createElement("div");
     item.className = "layer-item";
-
     item.innerHTML = `
       <input type="checkbox" checked />
       <div class="layer-color" style="background:${layer.color}"></div>
@@ -181,8 +177,8 @@ const panel = document.getElementById("layersPanel");
 
     panel.appendChild(item);
 
-    /* أول طبقة → توجيه الكاميرا */
-    if (layer === layers[0]) {
+    if (!firstTileset) {
+      firstTileset = tileset;
       await tileset.readyPromise;
       viewer.camera.flyToBoundingSphere(
         tileset.boundingSphere,
