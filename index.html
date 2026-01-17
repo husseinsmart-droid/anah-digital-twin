@@ -82,7 +82,7 @@ Cesium.Ion.defaultAccessToken =
 "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIyNWMxYmU5Ni0zZWUwLTRkNDctYjdhMC01NWY1M2RiN2U4NTUiLCJpZCI6MzU3NDMyLCJpYXQiOjE3Njc3MTUyNzB9.HBEzgBC5NskreMa2Fr6mb7cZNW74AX6XkYu-IKDw8WQ";
 
 const viewer = new Cesium.Viewer("cesiumContainer", {
-  terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+  terrainProvider: new Cesium.EllipsoidTerrainProvider(), // أرض مسطحة
   timeline: false,
   animation: false,
   sceneModePicker: false,
@@ -91,24 +91,21 @@ const viewer = new Cesium.Viewer("cesiumContainer", {
   geocoder: true,
   homeButton: true,
   fullscreenButton: true,
-  shadows: true // ✅
+  shadows: true
 });
 
-viewer.shadows = true;
+/* إعدادات الظل والإضاءة */
 viewer.scene.shadowMap.enabled = true;
 viewer.scene.shadowMap.softShadows = true;
-
-// تحسين بسيط
-viewer.scene.globe.depthTestAgainstTerrain = true;
 viewer.scene.globe.enableLighting = true;
 
-// وقت ثابت للظل (صباح)
-viewer.clock.currentTime = Cesium.JulianDate.fromIso8601("2026-01-16T10:30:00+03:00");
-tileset.shadows = Cesium.ShadowMode.ENABLED; // ✅ هذا هو المفتاح
+/* وقت ثابت (UTC) */
+viewer.clock.currentTime =
+  Cesium.JulianDate.fromIso8601("2026-01-16T07:30:00Z");
 viewer.clock.multiplier = 0;
 viewer.clock.shouldAnimate = false;
 
-/* تعريف الطبقات */
+/* الطبقات */
 const layers = [
   { name: "Residential",  color: "#FFF59D", assetId: 4355603 },
   { name: "Commercial",   color: "#E53935", assetId: 4355604 },
@@ -128,20 +125,24 @@ const layers = [
 const tilesets = {};
 const panel = document.getElementById("layersPanel");
 
-/* تحميل الطبقات + إنشاء واجهة التحكم */
+/* تحميل الطبقات */
 (async () => {
   for (const layer of layers) {
 
-    const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(layer.assetId);
+    const tileset =
+      await Cesium.Cesium3DTileset.fromIonAssetId(layer.assetId);
+
     viewer.scene.primitives.add(tileset);
     tileset.show = true;
 
+    /* ✅ تفعيل الظلال هنا (المكان الصحيح) */
+    tileset.shadows = Cesium.ShadowMode.ENABLED;
+
     tilesets[layer.name] = tileset;
 
-    /* عنصر واجهة */
+    /* واجهة التحكم */
     const item = document.createElement("div");
     item.className = "layer-item";
-
     item.innerHTML = `
       <input type="checkbox" checked />
       <div class="layer-color" style="background:${layer.color}"></div>
@@ -154,7 +155,7 @@ const panel = document.getElementById("layersPanel");
 
     panel.appendChild(item);
 
-    /* أول طبقة → توجيه الكاميرا */
+    /* توجيه الكاميرا لأول طبقة */
     if (layer === layers[0]) {
       await tileset.readyPromise;
       viewer.camera.flyToBoundingSphere(
@@ -165,6 +166,7 @@ const panel = document.getElementById("layersPanel");
   }
 })();
 </script>
+
 
 </body>
 </html>
