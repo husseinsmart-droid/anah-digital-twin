@@ -75,6 +75,20 @@ html, body, #cesiumContainer {
   z-index:20;
   min-width:260px;
 }
+  .layers-panel button{
+  width:100%;
+  margin-bottom:6px;
+  padding:6px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  background:#263238;
+  color:#fff;
+}
+.layers-panel button:hover{
+  background:#37474f;
+}
+
 </style>
 </head>
 
@@ -93,7 +107,13 @@ html, body, #cesiumContainer {
 <div class="coord-box" id="coordBox">
 📍 انقر على أي نقطة
 </div>
-
+  <div class="layers-panel" style="top:380px">
+  <h3>القياس</h3>
+  <button onclick="startDistance()">📏 قياس مسافة</button>
+  <button onclick="startArea()">📐 قياس مساحة</button>
+  <button onclick="clearMeasurements()">🗑️ مسح</button>
+</div>
+  
 <script>
 /* ================= TOKEN ================= */
 Cesium.Ion.defaultAccessToken =
@@ -140,6 +160,103 @@ const layers = [
   { name: "Vertical Buildings", color: "#B0BEC5", assetId: 4355602 },
   { name: "Roads", color: "#9E9E9E", assetId: 4355615 }
 ];
+
+  let activeShapePoints = [];
+let activeShape;
+let floatingPoint;
+let drawnEntities = [];
+
+/* ===== Marker + Coordinates ===== */
+handler.setInputAction(function(click){
+  const cartesian = viewer.scene.pickPosition(click.position);
+  if(!cartesian) return;
+
+  // Marker
+  const point = viewer.entities.add({
+    position: cartesian,
+    point: {
+      pixelSize: 10,
+      color: Cesium.Color.YELLOW,
+      outlineColor: Cesium.Color.BLACK,
+      outlineWidth: 2
+    }
+  });
+  drawnEntities.push(point);
+
+  // Coordinates
+  const carto = Cesium.Cartographic.fromCartesian(cartesian);
+  const lat = Cesium.Math.toDegrees(carto.latitude);
+  const lon = Cesium.Math.toDegrees(carto.longitude);
+  const utm = latLonToUTM(lat, lon);
+
+  coordBox.innerHTML = `
+<b>Lat:</b> ${lat.toFixed(6)}<br>
+<b>Lon:</b> ${lon.toFixed(6)}<br>
+<b>UTM:</b> Zone ${utm.zone}${utm.hemisphere}<br>
+E ${utm.easting.toFixed(2)} m<br>
+N ${utm.northing.toFixed(2)} m
+`;
+}, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+/* ===== Distance ===== */
+function startDistance(){
+  clearMeasurements();
+  startDrawing("line");
+}
+
+/* ===== Area ===== */
+function startArea(){
+  clearMeasurements();
+  startDrawing("polygon");
+}
+
+function startDrawing(type){
+  activeShapePoints = [];
+
+  handler.setInputAction(function(event){
+    const pos = viewer.scene.pickPosition(event.position);
+    if(!pos) return;
+
+    if(activeShapePoints.length === 0){
+      floatingPoint = viewer.entities.add({
+        position: pos,
+        point: { pixelSize: 8, color: Cesium.Color.RED }
+      });
+      drawnEntities.push(floatingPoint);
+      activeShapePoints.push(pos);
+
+      activeShape = viewer.entities.add(
+        type === "line" ? {
+          polyline: {
+            positions: new Cesium.CallbackProperty(() => activeShapePoints, false),
+            width: 3,
+            material: Cesium.Color.CYAN
+          }
+        } : {
+          polygon: {
+            hierarchy: new Cesium.CallbackProperty(() =>
+              new Cesium.PolygonHierarchy(activeShapePoints), false),
+            material: Cesium.Color.CYAN.withAlpha(0.4)
+          }
+        }
+      );
+      drawnEntities.push(activeShape);
+    }
+    activeShapePoints.push(pos);
+  }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+  handler.setInputAction(function(){
+    handler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_CLICK);
+    handler.removeInputAction(Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+  }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+}
+
+/* ===== Clear ===== */
+function clearMeasurements(){
+  drawnEntities.forEach(e => viewer.entities.remove(e));
+  drawnEntities = [];
+  activeShapePoints = [];
+}
 
 const tilesets = {};
 const panel = document.getElementById("layersPanel");
