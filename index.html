@@ -2,7 +2,7 @@
 <html lang="ar">
 <head>
 <meta charset="utf-8" />
-<title>Anah Digital Twin – Layers</title>
+<title>Anah Digital Twin – Tools</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <link rel="stylesheet"
@@ -16,405 +16,266 @@ html, body, #cesiumContainer {
   font-family: system-ui, Arial;
 }
 
+/* ===== Top ===== */
 .topbar {
   position: absolute;
   top: 10px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0,0,0,.6);
+  background: rgba(0,0,0,.65);
   color: #fff;
   padding: 8px 16px;
   border-radius: 10px;
-  z-index: 10;
+  z-index: 20;
 }
 
-.layers-panel {
+/* ===== Dropdown Panels ===== */
+.panel {
   position: absolute;
   top: 70px;
   left: 10px;
-  width: 260px;
+  width: 270px;
   background: rgba(255,255,255,.95);
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0,0,0,.25);
-  padding: 12px;
-  z-index: 10;
-  max-height: 75%;
-  overflow-y: auto;
+  z-index: 20;
+  overflow: hidden;
 }
 
-.layers-panel h3 {
-  margin: 0 0 8px;
-  font-size: 15px;
-  text-align: center;
-}
-
-.layer-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+.panel h3 {
+  margin: 0;
+  padding: 10px;
+  background: #263238;
+  color: #fff;
   font-size: 14px;
+  cursor: pointer;
 }
 
-.layer-color {
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
+.panel-content {
+  padding: 10px;
+  display: none;
 }
 
-/* صندوق الإحداثيات */
-.coord-box {
-  position:absolute;
-  bottom:15px;
-  left:15px;
-  background:rgba(0,0,0,0.7);
-  color:#fff;
-  padding:10px 14px;
-  border-radius:10px;
-  font-size:14px;
-  z-index:20;
-  min-width:260px;
+.panel.open .panel-content {
+  display: block;
 }
 
-/* أزرار القياس */
-.layers-panel button{
+/* Buttons */
+.panel button {
   width:100%;
   margin-bottom:6px;
   padding:6px;
   border:none;
   border-radius:6px;
   cursor:pointer;
-  background:#263238;
+  background:#37474f;
   color:#fff;
 }
-.layers-panel button:hover{
-  background:#37474f;
+.panel button:hover {
+  background:#455a64;
+}
+
+/* Layer item */
+.layer-item {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:13px;
+  margin-bottom:4px;
+}
+
+/* ===== Info Box ===== */
+.info-box {
+  position:absolute;
+  bottom:15px;
+  left:15px;
+  min-width:280px;
+  background:rgba(0,0,0,.75);
+  color:#fff;
+  padding:12px;
+  border-radius:10px;
+  font-size:14px;
+  z-index:25;
 }
 </style>
 </head>
 
 <body>
 
-<div class="topbar">🏙️ التوأم الرقمي لمدينة عنه – Anah Digital Twin</div>
+<div class="topbar">🏙️ التوأم الرقمي لمدينة عنه</div>
 
-<div class="layers-panel" id="layersPanel">
-  <h3>طبقات الاستعمالات</h3>
+<!-- Measurements -->
+<div class="panel open" id="measurePanel">
+  <h3 onclick="togglePanel('measurePanel')">📐 أدوات القياس</h3>
+  <div class="panel-content">
+    <button onclick="startDistance()">📏 قياس مسافة (م)</button>
+    <button onclick="startArea()">◼️ قياس مساحة</button>
+    <button onclick="pickCoordinate()">📍 إحداثيات</button>
+    <button onclick="clearAll()">🗑️ مسح</button>
+  </div>
 </div>
 
-<div class="layers-panel" id="measurePanel" style="top:380px">
-  <h3>القياس</h3>
-  <button id="btnDistance">📏 قياس مسافة</button>
-  <button id="btnArea">📐 قياس مساحة</button>
-  <button id="btnClear">🗑️ مسح القياسات</button>
+<!-- Layers -->
+<div class="panel" id="layersPanel" style="top:250px">
+  <h3 onclick="togglePanel('layersPanel')">🏘️ الاستعمالات</h3>
+  <div class="panel-content" id="layersContent"></div>
 </div>
 
 <div id="cesiumContainer"></div>
 
-<div class="coord-box" id="coordBox">📍 انقر على أي نقطة</div>
+<div class="info-box" id="infoBox">اختر أداة ثم انقر على الخريطة</div>
 
 <script>
-/* ================= TOKEN ================= */
-Cesium.Ion.defaultAccessToken =
-"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIyNWMxYmU5Ni0zZWUwLTRkNDctYjdhMC01NWY1M2RiN2U4NTUiLCJpZCI6MzU3NDMyLCJpYXQiOjE3Njc3MTUyNzB9.HBEzgBC5NskreMa2Fr6mb7cZNW74AX6XkYu-IKDw8WQ";
+/* ===== Token ===== */
+Cesium.Ion.defaultAccessToken = "YOUR_TOKEN";
 
-/* ================= VIEWER (بدون أي تغيير) ================= */
+/* ===== Viewer ===== */
 const viewer = new Cesium.Viewer("cesiumContainer", {
   terrainProvider: new Cesium.EllipsoidTerrainProvider(),
-  timeline: false,
-  animation: false,
-  sceneModePicker: false,
-  navigationHelpButton: false,
-  baseLayerPicker: true,
-  geocoder: true,
-  homeButton: true,
-  fullscreenButton: true,
-  shadows: true
+  timeline:false,
+  animation:false,
+  shadows:true
 });
 
-viewer.shadows = true;
-viewer.scene.shadowMap.enabled = true;
-viewer.scene.shadowMap.softShadows = true;
-viewer.scene.globe.depthTestAgainstTerrain = true;
 viewer.scene.globe.enableLighting = true;
 
-/* ✅ وقت ثابت (UTC أفضل) */
-viewer.clock.currentTime = Cesium.JulianDate.fromIso8601("2026-01-16T07:30:00Z");
-viewer.clock.multiplier = 0;
-viewer.clock.shouldAnimate = false;
+/* ===== UI ===== */
+function togglePanel(id){
+  document.getElementById(id).classList.toggle("open");
+}
 
-/* ================= UI ELEMENTS ================= */
-const coordBox = document.getElementById("coordBox");
-const panel = document.getElementById("layersPanel");
-
-/* ================= HANDLER واحد فقط ================= */
-const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
-
-/* ================= LAYERS ================= */
+/* ===== Layers ===== */
 const layers = [
-  { name: "Residential", color: "#FFF59D", assetId: 4355603 },
-  { name: "Commercial", color: "#E53935", assetId: 4355604 },
-  { name: "Educational", color: "#1E88E5", assetId: 4355606 },
-  { name: "Health", color: "#EC407A", assetId: 4355607 },
-  { name: "Industrial", color: "#8E24AA", assetId: 4355612 },
-  { name: "Religious", color: "#6D4C41", assetId: 4355610 },
-  { name: "Services", color: "#26C6DA", assetId: 4355609 },
-  { name: "Tourist", color: "#8D6E63", assetId: 4355611 },
-  { name: "GreenArea", color: "#2E7D32", assetId: 4355613 },
-  { name: "Public Buildings", color: "#455A64", assetId: 4355599 },
-  { name: "3D Houses", color: "#90CAF9", assetId: 4355597 },
-  { name: "Vertical Buildings", color: "#B0BEC5", assetId: 4355602 },
-  { name: "Roads", color: "#9E9E9E", assetId: 4355615 }
+  {name:"Residential", assetId:4355603},
+  {name:"Commercial", assetId:4355604},
+  {name:"Roads", assetId:4355615}
 ];
 
-const tilesets = {};
-(async () => {
-  for (const layer of layers) {
-    const tileset = await Cesium.Cesium3DTileset.fromIonAssetId(layer.assetId);
-    viewer.scene.primitives.add(tileset);
-    tileset.show = true;
-    tileset.shadows = Cesium.ShadowMode.ENABLED;
-    tilesets[layer.name] = tileset;
-
-    const item = document.createElement("div");
-    item.className = "layer-item";
-    item.innerHTML = `
-      <input type="checkbox" checked />
-      <div class="layer-color" style="background:${layer.color}"></div>
-      <span>${layer.name}</span>
-    `;
-    item.querySelector("input").addEventListener("change", e => {
-      tileset.show = e.target.checked;
-    });
-    panel.appendChild(item);
-
-    if (layer === layers[0]) {
-      await tileset.readyPromise;
-      viewer.camera.flyToBoundingSphere(tileset.boundingSphere, { duration: 2.5 });
-    }
+const layersContent = document.getElementById("layersContent");
+(async ()=>{
+  for(const l of layers){
+    const ts = await Cesium.Cesium3DTileset.fromIonAssetId(l.assetId);
+    viewer.scene.primitives.add(ts);
+    const div = document.createElement("div");
+    div.className="layer-item";
+    div.innerHTML = `<input type="checkbox" checked> ${l.name}`;
+    div.querySelector("input").onchange=e=>ts.show=e.target.checked;
+    layersContent.appendChild(div);
   }
 })();
 
-/* ================= COORDS + MARKER (نقرة عادية) ================= */
-let lastMarker = null;
+/* ===== Tools ===== */
+const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+const infoBox = document.getElementById("infoBox");
 
-function setMarkerAndCoords(cartesian){
-  // Marker واحد فقط (آخر نقطة)
-  if (lastMarker) viewer.entities.remove(lastMarker);
+let mode=null;
+let points=[];
+let entities=[];
 
-  lastMarker = viewer.entities.add({
-    position: cartesian,
-    point: {
-      pixelSize: 10,
-      color: Cesium.Color.YELLOW,
-      outlineColor: Cesium.Color.BLACK,
-      outlineWidth: 2
+function clearAll(){
+  entities.forEach(e=>viewer.entities.remove(e));
+  entities=[];
+  points=[];
+  mode=null;
+  infoBox.innerHTML="تم المسح";
+  handler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_CLICK);
+}
+
+/* ===== Marker Balloon ===== */
+function addBalloon(pos){
+  const b = viewer.entities.add({
+    position: pos,
+    billboard:{
+      image:"https://cdn-icons-png.flaticon.com/512/684/684908.png",
+      verticalOrigin:Cesium.VerticalOrigin.BOTTOM,
+      scale:0.07
     }
   });
+  entities.push(b);
+}
 
-  const carto = Cesium.Cartographic.fromCartesian(cartesian);
-  const lat = Cesium.Math.toDegrees(carto.latitude);
-  const lon = Cesium.Math.toDegrees(carto.longitude);
-  const utm = latLonToUTM(lat, lon);
+/* ===== Coordinate ===== */
+function pickCoordinate(){
+  clearAll();
+  mode="coord";
+  handler.setInputAction(e=>{
+    const p = viewer.scene.pickPosition(e.position);
+    if(!p) return;
+    addBalloon(p);
+    const c = Cesium.Cartographic.fromCartesian(p);
+    const lat = Cesium.Math.toDegrees(c.latitude);
+    const lon = Cesium.Math.toDegrees(c.longitude);
+    const utm = latLonToUTM(lat,lon);
 
-  coordBox.innerHTML = `
-<b>Lat:</b> ${lat.toFixed(6)}<br>
-<b>Lon:</b> ${lon.toFixed(6)}<br>
-<b>UTM:</b> Zone ${utm.zone}${utm.hemisphere}<br>
-E ${utm.easting.toFixed(2)} m<br>
-N ${utm.northing.toFixed(2)} m
+    infoBox.innerHTML = `
+<b>WGS84</b><br>
+N: ${lat.toFixed(6)}<br>
+E: ${lon.toFixed(6)}<br><br>
+<b>UTM</b><br>
+E: ${utm.easting.toFixed(2)} m<br>
+N: ${utm.northing.toFixed(2)} m<br>
+Zone: ${utm.zone}${utm.hemisphere}
 `;
+  },Cesium.ScreenSpaceEventType.LEFT_CLICK);
 }
 
-/* ================= MEASUREMENT MODE ================= */
-let measureMode = null; // "line" | "polygon" | null
-let activeShapePoints = [];
-let activeEntity = null;
-let measureEntities = []; // فقط القياسات
-
-function clearMeasurements(){
-  measureEntities.forEach(e => viewer.entities.remove(e));
-  measureEntities = [];
-  activeShapePoints = [];
-  activeEntity = null;
-  measureMode = null;
-
-  // نعيد حدث النقر الطبيعي للإحداثيات
-  bindDefaultClick();
-}
-
-function bindDefaultClick(){
-  handler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_CLICK);
-  handler.removeInputAction(Cesium.ScreenSpaceEventType.RIGHT_CLICK);
-
-  handler.setInputAction((click) => {
-    const cartesian = viewer.scene.pickPosition(click.position);
-    if (!cartesian) return;
-    setMarkerAndCoords(cartesian);
-  }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-}
-
-function bindMeasureClicks(){
-  handler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_CLICK);
-  handler.removeInputAction(Cesium.ScreenSpaceEventType.RIGHT_CLICK);
-
-  handler.setInputAction((click) => {
-    const pos = viewer.scene.pickPosition(click.position);
-    if (!pos) return;
-
-    // أيضاً نعرض الإحداثيات + ماركر عند النقر أثناء القياس
-    setMarkerAndCoords(pos);
-
-    activeShapePoints.push(pos);
-
-    if (activeShapePoints.length === 1) {
-      if (measureMode === "line") {
-        activeEntity = viewer.entities.add({
-          polyline: {
-            positions: new Cesium.CallbackProperty(() => activeShapePoints, false),
-            width: 3,
-            material: Cesium.Color.CYAN
-          }
-        });
-      } else {
-        activeEntity = viewer.entities.add({
-          polygon: {
-            hierarchy: new Cesium.CallbackProperty(
-              () => new Cesium.PolygonHierarchy(activeShapePoints), false
-            ),
-            material: Cesium.Color.CYAN.withAlpha(0.4)
-          }
-        });
-      }
-      measureEntities.push(activeEntity);
+/* ===== Distance ===== */
+function startDistance(){
+  clearAll(); mode="dist";
+  handler.setInputAction(e=>{
+    const p = viewer.scene.pickPosition(e.position);
+    if(!p) return;
+    addBalloon(p);
+    points.push(p);
+    if(points.length>1){
+      const d = Cesium.Cartesian3.distance(points.at(-2),points.at(-1));
+      infoBox.innerHTML = `📏 المسافة الجزئية: ${d.toFixed(2)} م`;
     }
+  },Cesium.ScreenSpaceEventType.LEFT_CLICK);
+}
 
-  }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-
-  // Right click: إنهاء القياس وإظهار نتيجة
-  handler.setInputAction(() => {
-    if (activeShapePoints.length < (measureMode === "line" ? 2 : 3)) {
-      // غير كافي
-      return;
+/* ===== Area ===== */
+function startArea(){
+  clearAll(); mode="area";
+  handler.setInputAction(e=>{
+    const p = viewer.scene.pickPosition(e.position);
+    if(!p) return;
+    addBalloon(p);
+    points.push(p);
+    if(points.length>=3){
+      const a = calcArea(points);
+      infoBox.innerHTML = `◼️ المساحة: ${a.toFixed(1)} م²`;
     }
-
-    const labelPos = activeShapePoints[activeShapePoints.length - 1];
-    const resultText = (measureMode === "line")
-      ? (calcDistanceMeters(activeShapePoints) / 1000).toFixed(3) + " كم"
-      : calcAreaSqMeters(activeShapePoints).toFixed(1) + " م²";
-
-    const label = viewer.entities.add({
-      position: labelPos,
-      label: {
-        text: resultText,
-        font: "14px sans-serif",
-        fillColor: Cesium.Color.WHITE,
-        showBackground: true,
-        backgroundColor: Cesium.Color.BLACK.withAlpha(0.6),
-        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-        pixelOffset: new Cesium.Cartesian2(0, -12)
-      }
-    });
-    measureEntities.push(label);
-
-    // نوقف وضع القياس ونرجع للنقر الطبيعي
-    measureMode = null;
-    activeShapePoints = [];
-    activeEntity = null;
-    bindDefaultClick();
-
-  }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+  },Cesium.ScreenSpaceEventType.LEFT_CLICK);
 }
 
-/* أزرار القياس */
-document.getElementById("btnDistance").addEventListener("click", () => {
-  clearMeasurements();
-  measureMode = "line";
-  activeShapePoints = [];
-  bindMeasureClicks();
-});
-
-document.getElementById("btnArea").addEventListener("click", () => {
-  clearMeasurements();
-  measureMode = "polygon";
-  activeShapePoints = [];
-  bindMeasureClicks();
-});
-
-document.getElementById("btnClear").addEventListener("click", () => {
-  clearMeasurements();
-});
-
-/* bind default click at start */
-bindDefaultClick();
-
-/* ================= UTILS ================= */
-function calcDistanceMeters(points){
-  let d = 0;
-  for(let i=1;i<points.length;i++){
-    d += Cesium.Cartesian3.distance(points[i-1], points[i]);
+/* ===== Utils ===== */
+function calcArea(pts){
+  let area=0;
+  const c=pts.map(p=>Cesium.Cartographic.fromCartesian(p));
+  for(let i=0;i<c.length;i++){
+    const j=(i+1)%c.length;
+    area += (c[j].longitude-c[i].longitude) *
+            (2+Math.sin(c[i].latitude)+Math.sin(c[j].latitude));
   }
-  return d;
+  return Math.abs(area*6378137*6378137/2);
 }
 
-// مساحة تقريبية على WGS84 باستخدام Cartographic (مناسبة للاستخدام العام)
-function calcAreaSqMeters(points){
-  // تحويل إلى lat/lon
-  const coords = points.map(p => Cesium.Cartographic.fromCartesian(p));
-  let area = 0;
-  for (let i = 0; i < coords.length; i++) {
-    const p1 = coords[i];
-    const p2 = coords[(i + 1) % coords.length];
-    area += (p2.longitude - p1.longitude) * (2 + Math.sin(p1.latitude) + Math.sin(p2.latitude));
-  }
-  area = area * 6378137 * 6378137 / 2;
-  return Math.abs(area);
-}
-
-/* ===== Lat/Lon → UTM ===== */
-function latLonToUTM(lat, lon) {
-  const a = 6378137;
-  const f = 1 / 298.257223563;
-  const k0 = 0.9996;
-  const e = Math.sqrt(f * (2 - f));
-
-  const zone = Math.floor((lon + 180) / 6) + 1;
-  const lambda0 = ((zone - 1) * 6 - 180 + 3) * Math.PI / 180;
-
-  const phi = lat * Math.PI / 180;
-  const lambda = lon * Math.PI / 180;
-
-  const N = a / Math.sqrt(1 - e * e * Math.sin(phi) ** 2);
-  const T = Math.tan(phi) ** 2;
-  const C = (e * e / (1 - e * e)) * Math.cos(phi) ** 2;
-  const A = Math.cos(phi) * (lambda - lambda0);
-
-  const M = a * (
-    (1 - e * e / 4 - 3 * e ** 4 / 64 - 5 * e ** 6 / 256) * phi
-    - (3 * e * e / 8 + 3 * e ** 4 / 32 + 45 * e ** 6 / 1024) * Math.sin(2 * phi)
-    + (15 * e ** 4 / 256 + 45 * e ** 6 / 1024) * Math.sin(4 * phi)
-    - (35 * e ** 6 / 3072) * Math.sin(6 * phi)
-  );
-
-  let easting = k0 * N * (
-    A + (1 - T + C) * A ** 3 / 6 +
-    (5 - 18 * T + T ** 2 + 72 * C) * A ** 5 / 120
-  ) + 500000;
-
-  let northing = k0 * (
-    M + N * Math.tan(phi) * (
-      A ** 2 / 2 +
-      (5 - T + 9 * C) * A ** 4 / 24 +
-      (61 - 58 * T + T ** 2) * A ** 6 / 720
-    )
-  );
-
-  let hemisphere = "N";
-  if (lat < 0) {
-    northing += 10000000;
-    hemisphere = "S";
-  }
-
-  return { zone, hemisphere, easting, northing };
+function latLonToUTM(lat, lon){
+  const a=6378137,f=1/298.257223563,k0=0.9996;
+  const e=Math.sqrt(f*(2-f));
+  const zone=Math.floor((lon+180)/6)+1;
+  const phi=lat*Math.PI/180,lam=lon*Math.PI/180;
+  const lam0=((zone-1)*6-180+3)*Math.PI/180;
+  const N=a/Math.sqrt(1-e*e*Math.sin(phi)**2);
+  const T=Math.tan(phi)**2;
+  const C=(e*e/(1-e*e))*Math.cos(phi)**2;
+  const A=Math.cos(phi)*(lam-lam0);
+  const M=a*((1-e*e/4)*phi-(3*e*e/8)*Math.sin(2*phi));
+  let E=k0*N*(A+(1-T+C)*A**3/6)+500000;
+  let Nn=k0*(M+N*Math.tan(phi)*(A*A/2));
+  if(lat<0) Nn+=10000000;
+  return {zone, hemisphere:lat>=0?"N":"S", easting:E, northing:Nn};
 }
 </script>
 
