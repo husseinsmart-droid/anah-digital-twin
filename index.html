@@ -81,11 +81,11 @@ timeline:false,animation:false,shadows:true
   
 viewer.shadows = true;
 
-viewer.scene.shadowMap.enabled = true;
-viewer.scene.shadowMap.softShadows = true;
-
 viewer.scene.globe.enableLighting = true;
 viewer.scene.globe.depthTestAgainstTerrain = true;
+  
+viewer.scene.shadowMap.enabled = true;
+viewer.scene.shadowMap.softShadows = true;
 
   viewer.clock.currentTime =
   Cesium.JulianDate.fromIso8601("2026-01-16T10:30:00+03:00");
