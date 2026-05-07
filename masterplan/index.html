@@ -1,62 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anah Master Plan Web GIS</title>
 
-<title>Anah Master Plan</title>
-
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
 
 <style>
 html,body{
-    margin:0;
-    padding:0;
-    width:100%;
-    height:100%;
-    overflow:hidden;
-    font-family:Arial;
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  font-family:Arial, sans-serif;
 }
+#map{width:100%;height:100%;}
 
-#map{
-    width:100%;
-    height:100%;
+.panel{
+  position:absolute;
+  top:14px;
+  right:14px;
+  z-index:1000;
+  width:285px;
+  max-height:88vh;
+  overflow:auto;
+  background:rgba(255,255,255,.94);
+  backdrop-filter:blur(12px);
+  border-radius:16px;
+  box-shadow:0 8px 28px rgba(0,0,0,.28);
+  padding:14px;
 }
-
-.layer-panel{
-    position:absolute;
-    top:15px;
-    right:15px;
-    z-index:1000;
-    background:rgba(255,255,255,.95);
-    padding:14px;
-    border-radius:14px;
-    box-shadow:0 4px 20px rgba(0,0,0,.25);
-    min-width:220px;
+.panel h2{
+  margin:0 0 4px;
+  font-size:18px;
+  color:#0f172a;
 }
-
-.layer-panel h3{
-    margin:0 0 10px 0;
-    font-size:18px;
+.panel small{
+  color:#64748b;
 }
-
-.layer-item{
-    margin-bottom:8px;
-    display:flex;
-    align-items:center;
-    gap:8px;
+.layer{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:8px 0;
+  font-size:14px;
 }
-
+.swatch{
+  width:16px;
+  height:16px;
+  border-radius:4px;
+  border:1px solid #555;
+}
 .coords{
-    position:absolute;
-    bottom:10px;
-    left:10px;
-    z-index:1000;
-    background:rgba(0,0,0,.7);
-    color:#fff;
-    padding:8px 12px;
-    border-radius:8px;
-    font-size:13px;
+  position:absolute;
+  bottom:12px;
+  left:12px;
+  z-index:1000;
+  background:rgba(15,23,42,.86);
+  color:#fff;
+  padding:8px 12px;
+  border-radius:10px;
+  font-size:13px;
+}
+.title{
+  position:absolute;
+  top:14px;
+  left:55px;
+  z-index:1000;
+  background:rgba(15,23,42,.82);
+  color:#fff;
+  padding:10px 16px;
+  border-radius:14px;
+  box-shadow:0 6px 20px rgba(0,0,0,.25);
+}
+.title b{font-size:17px;}
+.title span{display:block;font-size:12px;color:#cbd5e1;}
+
+@media(max-width:700px){
+  .panel{
+    width:calc(100% - 28px);
+    right:14px;
+    top:auto;
+    bottom:58px;
+    max-height:42vh;
+  }
+  .title{
+    left:12px;
+    top:12px;
+    max-width:calc(100% - 24px);
+  }
 }
 </style>
 </head>
@@ -65,71 +99,151 @@ html,body{
 
 <div id="map"></div>
 
-<div class="layer-panel">
-    <h3>Layers</h3>
-
-    <div class="layer-item">
-        <input type="checkbox" id="residentialCheck" checked>
-        <label>Residential</label>
-    </div>
+<div class="title">
+  <b>Anah Master Plan</b>
+  <span>Urban Land Use Web GIS</span>
 </div>
 
-<div class="coords" id="coords">
-    Lat: 0 | Lon: 0
+<div class="panel">
+  <h2>Layers Control</h2>
+  <small>Turn layers on / off</small>
+  <div id="layerList"></div>
 </div>
+
+<div class="coords" id="coords">Lat: -- | Lon: --</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
 <script>
+const map = L.map('map', {
+  zoomControl:true
+}).setView([34.369, 41.981], 13);
 
-const map = L.map('map').setView([34.369, 41.981], 13);
+const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  maxZoom:22,
+  attribution:'© OpenStreetMap'
+}).addTo(map);
 
-L.tileLayer(
-'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-{
-    maxZoom: 22,
-    attribution:'© OpenStreetMap'
-}
-).addTo(map);
+const esriImagery = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  {maxZoom:22, attribution:'Tiles © Esri'}
+);
 
-let residentialLayer;
+const esriHybrid = L.layerGroup([
+  esriImagery,
+  L.tileLayer(
+    'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+    {maxZoom:22}
+  )
+]).addTo(map);
 
-fetch('./geojson/Residential.geojson')
-.then(res => res.json())
-.then(data => {
+L.control.layers({
+  "Satellite": esriHybrid,
+  "Imagery": esriImagery,
+  "OpenStreetMap": osm
+}, null, {position:'bottomright'}).addTo(map);
 
-    residentialLayer = L.geoJSON(data,{
-        style:{
-            color:'#e6d400',
-            weight:1,
-            fillColor:'#fff200',
-            fillOpacity:0.7
+const layersConfig = [
+  {name:"Master Plan Boundary", file:"master plan boundary.geojson", color:"#ef4444", fill:"#ffffff", opacity:0.05, weight:3, checked:true},
+  {name:"Green Areas", file:"GreenArea.geojson", color:"#16a34a", fill:"#39ff14", opacity:0.65, weight:1, checked:true},
+  {name:"Residential", file:"Residential.geojson", color:"#8a8a00", fill:"#fff200", opacity:0.70, weight:0.7, checked:true},
+  {name:"Vertical Residential", file:"Vertical_Residential.geojson", color:"#b45309", fill:"#f59e0b", opacity:0.75, weight:1, checked:true},
+  {name:"Commercial", file:"Commercial.geojson", color:"#991b1b", fill:"#dc2626", opacity:0.75, weight:1, checked:true},
+  {name:"Commercial Line", file:"Commercial_line.geojson", color:"#ef4444", fill:"#ef4444", opacity:0.8, weight:2, checked:true},
+  {name:"Industrial", file:"Industrial.geojson", color:"#6b21a8", fill:"#a855f7", opacity:0.70, weight:1, checked:true},
+  {name:"Services", file:"Services.geojson", color:"#0284c7", fill:"#bae6fd", opacity:0.75, weight:1, checked:true},
+  {name:"Educational", file:"Educational.geojson", color:"#1d4ed8", fill:"#3b82f6", opacity:0.75, weight:1, checked:true},
+  {name:"Health", file:"Health.geojson", color:"#be185d", fill:"#ec4899", opacity:0.80, weight:1, checked:true},
+  {name:"Religious", file:"Religious.geojson", color:"#a16207", fill:"#facc15", opacity:0.75, weight:1, checked:true},
+  {name:"Tourist", file:"Tourist.geojson", color:"#65a30d", fill:"#d9f99d", opacity:0.70, weight:1, checked:true},
+  {name:"Oil Station", file:"Oil station.geojson", color:"#0369a1", fill:"#0ea5e9", opacity:0.85, weight:1, checked:true},
+  {name:"Garage", file:"Garadge.geojson", color:"#334155", fill:"#94a3b8", opacity:0.80, weight:1, checked:true},
+  {name:"Cemetery", file:"cemetery.geojson", color:"#57534e", fill:"#d6d3d1", opacity:0.75, weight:1, checked:true},
+  {name:"Roads", file:"Roads.geojson", color:"#111827", fill:"#6b7280", opacity:0.90, weight:2, checked:true}
+];
+
+const loadedLayers = {};
+const layerList = document.getElementById("layerList");
+let boundsGroup = L.featureGroup();
+
+layersConfig.forEach((cfg, i)=>{
+  const id = "layer_" + i;
+
+  const row = document.createElement("div");
+  row.className = "layer";
+  row.innerHTML = `
+    <input type="checkbox" id="${id}" ${cfg.checked ? "checked" : ""}>
+    <span class="swatch" style="background:${cfg.fill};border-color:${cfg.color}"></span>
+    <label for="${id}">${cfg.name}</label>
+  `;
+  layerList.appendChild(row);
+
+  fetch("./geojson/" + cfg.file)
+    .then(r => r.json())
+    .then(data => {
+      const layer = L.geoJSON(data, {
+        style: {
+          color: cfg.color,
+          weight: cfg.weight,
+          fillColor: cfg.fill,
+          fillOpacity: cfg.opacity
+        },
+        onEachFeature: function(feature, lyr){
+          let props = feature.properties || {};
+          let html = `<b>${cfg.name}</b><hr>`;
+          Object.keys(props).forEach(k=>{
+            if(props[k] !== null && props[k] !== ""){
+              html += `<b>${k}</b>: ${props[k]}<br>`;
+            }
+          });
+          lyr.bindPopup(html);
         }
-    }).addTo(map);
+      });
 
-    map.fitBounds(residentialLayer.getBounds());
+      loadedLayers[id] = layer;
 
+      if(cfg.checked) layer.addTo(map);
+      boundsGroup.addLayer(layer);
+
+      if(Object.keys(loadedLayers).length === layersConfig.length){
+        map.fitBounds(boundsGroup.getBounds(), {padding:[30,30]});
+      }
+
+      document.getElementById(id).addEventListener("change", function(){
+        if(this.checked){ map.addLayer(layer); }
+        else{ map.removeLayer(layer); }
+      });
+    });
 });
 
-document.getElementById('residentialCheck')
-.addEventListener('change',function(){
-
-    if(this.checked){
-        map.addLayer(residentialLayer);
-    }else{
-        map.removeLayer(residentialLayer);
-    }
-
+map.on("mousemove", e=>{
+  document.getElementById("coords").innerHTML =
+    "Lat: " + e.latlng.lat.toFixed(6) + " | Lon: " + e.latlng.lng.toFixed(6);
 });
 
-map.on('mousemove',function(e){
+const drawnItems = new L.FeatureGroup();
+map.addLayer(drawnItems);
 
-    document.getElementById('coords').innerHTML =
-    'Lat: ' + e.latlng.lat.toFixed(6) +
-    ' | Lon: ' + e.latlng.lng.toFixed(6);
+const drawControl = new L.Control.Draw({
+  position:'topleft',
+  edit:{featureGroup:drawnItems},
+  draw:{
+    polygon:true,
+    polyline:true,
+    rectangle:true,
+    circle:false,
+    circlemarker:false,
+    marker:true
+  }
+});
+map.addControl(drawControl);
 
+map.on(L.Draw.Event.CREATED, function(e){
+  drawnItems.addLayer(e.layer);
 });
 
+L.control.scale({position:'bottomleft'}).addTo(map);
 </script>
 
 </body>
