@@ -37,21 +37,22 @@ html,body{
   font-size:18px;
   color:#0f172a;
 }
-.panel small{
-  color:#64748b;
-}
+.panel small{color:#64748b;}
+
 .layer{
   display:flex;
   align-items:center;
   gap:8px;
   margin:8px 0;
   font-size:14px;
+  white-space:nowrap;
 }
 .swatch{
   width:16px;
   height:16px;
   border-radius:4px;
   border:1px solid #555;
+  flex:0 0 16px;
 }
 .coords{
   position:absolute;
@@ -123,7 +124,7 @@ const map = L.map('map', {
 const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
   maxZoom:22,
   attribution:'© OpenStreetMap'
-}).addTo(map);
+});
 
 const esriImagery = L.tileLayer(
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -145,27 +146,27 @@ L.control.layers({
 }, null, {position:'bottomright'}).addTo(map);
 
 const layersConfig = [
-  {name:"Master Plan Boundary", file:"master plan boundary.geojson", color:"#ef4444", fill:"#ffffff", opacity:0.05, weight:3, checked:true},
+  {name:"Master Plan Boundary", file:"master plan boundary.geojson", color:"#ef4444", fill:"#ffffff", opacity:0.03, weight:3, checked:true},
   {name:"Green Areas", file:"GreenArea.geojson", color:"#16a34a", fill:"#39ff14", opacity:0.65, weight:1, checked:true},
   {name:"Residential", file:"Residential.geojson", color:"#8a8a00", fill:"#fff200", opacity:0.70, weight:0.7, checked:true},
   {name:"Vertical Residential", file:"Vertical_Residential.geojson", color:"#b45309", fill:"#f59e0b", opacity:0.75, weight:1, checked:true},
   {name:"Commercial", file:"Commercial.geojson", color:"#991b1b", fill:"#dc2626", opacity:0.75, weight:1, checked:true},
-  {name:"Commercial Line", file:"Commercial_line.geojson", color:"#ef4444", fill:"#ef4444", opacity:0.8, weight:2, checked:true},
+  {name:"Commercial Line", file:"Commercial_line.geojson", color:"#ef4444", fill:"#ef4444", opacity:0.95, weight:3, checked:true},
   {name:"Industrial", file:"Industrial.geojson", color:"#6b21a8", fill:"#a855f7", opacity:0.70, weight:1, checked:true},
   {name:"Services", file:"Services.geojson", color:"#0284c7", fill:"#bae6fd", opacity:0.75, weight:1, checked:true},
   {name:"Educational", file:"Educational.geojson", color:"#1d4ed8", fill:"#3b82f6", opacity:0.75, weight:1, checked:true},
-  {name:"Health", file:"Health.geojson", color:"#be185d", fill:"#ec4899", opacity:0.80, weight:1, checked:true},
-  {name:"Religious", file:"Religious.geojson", color:"#a16207", fill:"#facc15", opacity:0.75, weight:1, checked:true},
-  {name:"Tourist", file:"Tourist.geojson", color:"#65a30d", fill:"#d9f99d", opacity:0.70, weight:1, checked:true},
-  {name:"Oil Station", file:"Oil station.geojson", color:"#0369a1", fill:"#0ea5e9", opacity:0.85, weight:1, checked:true},
-  {name:"Garage", file:"Garadge.geojson", color:"#334155", fill:"#94a3b8", opacity:0.80, weight:1, checked:true},
-  {name:"Cemetery", file:"cemetery.geojson", color:"#57534e", fill:"#d6d3d1", opacity:0.75, weight:1, checked:true},
-  {name:"Roads", file:"Roads.geojson", color:"#111827", fill:"#6b7280", opacity:0.90, weight:2, checked:true}
+  {name:"Health", file:"Health.geojson", color:"#be185d", fill:"#ec4899", opacity:0.85, weight:1, checked:true},
+  {name:"Religious", file:"Religious.geojson", color:"#facc15", fill:"#facc15", opacity:0.95, weight:2, checked:true},
+  {name:"Tourist", file:"Tourist.geojson", color:"#65a30d", fill:"#d9f99d", opacity:0.75, weight:1, checked:true},
+  {name:"Oil Station", file:"Oil station.geojson", color:"#0369a1", fill:"#0ea5e9", opacity:0.90, weight:1, checked:true},
+  {name:"Garage", file:"Garadge.geojson", color:"#334155", fill:"#94a3b8", opacity:0.85, weight:1, checked:true},
+  {name:"Cemetery", file:"cemetery.geojson", color:"#57534e", fill:"#d6d3d1", opacity:0.80, weight:1, checked:true},
+  {name:"Roads", file:"Roads.geojson", color:"#111827", fill:"#6b7280", opacity:0.95, weight:2.5, checked:true}
 ];
 
 const loadedLayers = {};
 const layerList = document.getElementById("layerList");
-let boundsGroup = L.featureGroup();
+const boundsGroup = L.featureGroup();
 
 layersConfig.forEach((cfg, i)=>{
   const id = "layer_" + i;
@@ -180,17 +181,34 @@ layersConfig.forEach((cfg, i)=>{
   layerList.appendChild(row);
 
   fetch("./geojson/" + cfg.file)
-    .then(r => r.json())
+    .then(r => {
+      if(!r.ok) throw new Error(cfg.file + " not found");
+      return r.json();
+    })
     .then(data => {
       const layer = L.geoJSON(data, {
-        style: {
-          color: cfg.color,
-          weight: cfg.weight,
-          fillColor: cfg.fill,
-          fillOpacity: cfg.opacity
+        style: function(){
+          return {
+            color: cfg.color,
+            weight: cfg.weight,
+            fillColor: cfg.fill,
+            fillOpacity: cfg.opacity,
+            opacity: 1
+          };
         },
+
+        pointToLayer: function(feature, latlng){
+          return L.circleMarker(latlng,{
+            radius:8,
+            color:cfg.color,
+            weight:2,
+            fillColor:cfg.fill,
+            fillOpacity:0.95
+          });
+        },
+
         onEachFeature: function(feature, lyr){
-          let props = feature.properties || {};
+          const props = feature.properties || {};
           let html = `<b>${cfg.name}</b><hr>`;
           Object.keys(props).forEach(k=>{
             if(props[k] !== null && props[k] !== ""){
@@ -203,23 +221,63 @@ layersConfig.forEach((cfg, i)=>{
 
       loadedLayers[id] = layer;
 
-      if(cfg.checked) layer.addTo(map);
+      if(cfg.checked){
+        layer.addTo(map);
+      }
+
       boundsGroup.addLayer(layer);
+
+      document.getElementById(id).addEventListener("change", function(){
+        if(this.checked){
+          map.addLayer(layer);
+          bringImportantLayersToFront();
+        }else{
+          map.removeLayer(layer);
+        }
+      });
 
       if(Object.keys(loadedLayers).length === layersConfig.length){
         map.fitBounds(boundsGroup.getBounds(), {padding:[30,30]});
+        bringImportantLayersToFront();
       }
-
-      document.getElementById(id).addEventListener("change", function(){
-        if(this.checked){ map.addLayer(layer); }
-        else{ map.removeLayer(layer); }
-      });
+    })
+    .catch(err=>{
+      console.warn("Layer load error:", err.message);
     });
 });
+
+function bringImportantLayersToFront(){
+  layersConfig.forEach((cfg, i)=>{
+    const layer = loadedLayers["layer_" + i];
+    if(!layer || !map.hasLayer(layer)) return;
+
+    if(
+      cfg.name === "Master Plan Boundary" ||
+      cfg.name === "Commercial Line" ||
+      cfg.name === "Religious" ||
+      cfg.name === "Health" ||
+      cfg.name === "Educational" ||
+      cfg.name === "Roads"
+    ){
+      layer.bringToFront();
+    }
+  });
+}
 
 map.on("mousemove", e=>{
   document.getElementById("coords").innerHTML =
     "Lat: " + e.latlng.lat.toFixed(6) + " | Lon: " + e.latlng.lng.toFixed(6);
+});
+
+map.on("click", e=>{
+  L.popup()
+    .setLatLng(e.latlng)
+    .setContent(
+      "<b>Coordinates</b><br>" +
+      "Lat: " + e.latlng.lat.toFixed(6) + "<br>" +
+      "Lon: " + e.latlng.lng.toFixed(6)
+    )
+    .openOn(map);
 });
 
 const drawnItems = new L.FeatureGroup();
