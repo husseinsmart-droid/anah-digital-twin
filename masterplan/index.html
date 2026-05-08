@@ -122,6 +122,29 @@ html,body{
     display:none;
   }
 
+  .search-panel{
+  top:58px;
+  left:78px;
+  width:190px;
+  padding:6px;
+}
+
+.search-panel input{
+  padding:5px;
+  font-size:10px;
+  margin-bottom:4px;
+}
+
+.search-panel button{
+  padding:5px;
+  font-size:10px;
+}
+
+.coord-row{
+  grid-template-columns:1fr 1fr 44px;
+  gap:4px;
+}
+
   #layerList{
   display:grid;
   grid-template-columns:1fr 1fr 1fr;
@@ -196,6 +219,61 @@ html,body{
   text-align:center;
   pointer-events:none;
 }
+
+  .search-panel{
+  position:absolute;
+  top:82px;
+  left:55px;
+  z-index:1000;
+  width:250px;
+  background:rgba(255,255,255,.94);
+  backdrop-filter:blur(10px);
+  border-radius:14px;
+  padding:8px;
+  box-shadow:0 6px 22px rgba(0,0,0,.22);
+}
+
+.search-panel input{
+  width:100%;
+  box-sizing:border-box;
+  border:1px solid #cbd5e1;
+  border-radius:8px;
+  padding:7px;
+  font-size:12px;
+  margin-bottom:6px;
+}
+
+.search-panel button{
+  width:100%;
+  border:0;
+  border-radius:8px;
+  padding:7px;
+  background:#0f172a;
+  color:white;
+  font-size:12px;
+  cursor:pointer;
+}
+
+.coord-row{
+  display:grid;
+  grid-template-columns:1fr 1fr 56px;
+  gap:5px;
+  margin-top:6px;
+}
+
+.coord-row input{
+  margin-bottom:0;
+}
+
+.coord-row button{
+  padding:7px 4px;
+}
+
+.search-highlight{
+  color:#00ffff;
+  weight:4;
+  fillOpacity:0.95;
+}
 </style>
 </head>
 
@@ -215,6 +293,22 @@ html,body{
 </div>
 
 <div class="coords" id="coords">Lat: -- | Lon: --</div>
+<div class="search-panel">
+
+  <input id="plotSearch" type="text" placeholder="Search plot number">
+
+  <button onclick="searchPlot()">Search</button>
+
+  <div class="coord-row">
+    <input id="manualLat" type="text" placeholder="Lat">
+
+    <input id="manualLon" type="text" placeholder="Lon">
+
+    <button onclick="addManualMarker()">Add</button>
+  </div>
+
+</div>
+  
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
@@ -488,6 +582,7 @@ else if(
       });
 
       loadedLayers[id] = layer;
+      allFeatureLayers.push({layer:layer, cfg:cfg});
 
       if(cfg.checked){
         layer.addTo(map);
@@ -646,6 +741,98 @@ map.on(L.Draw.Event.CREATED, function(e){
 });
 
 L.control.scale({position:'bottomleft'}).addTo(map);
+
+  let allFeatureLayers = [];
+let searchMarker = null;
+let highlightLayer = null;
+
+function getPlotValue(props){
+  const keys = Object.keys(props || {});
+  const candidates = [
+    "plot_no","plot","parcel","parcel_no","Plot_No","PLOT_NO",
+    "رقم_القطعة","رقم القطعة","قطعة","No","NO","number","Number",
+    "Name","name"
+  ];
+
+  for(const c of candidates){
+    const found = keys.find(k => k.toLowerCase() === c.toLowerCase());
+    if(found && props[found] !== null && props[found] !== ""){
+      return String(props[found]).trim();
+    }
+  }
+  return "";
+}
+
+function searchPlot(){
+  const q = document.getElementById("plotSearch").value.trim();
+  if(!q) return;
+
+  let found = null;
+
+  allFeatureLayers.forEach(item=>{
+    item.layer.eachLayer(lyr=>{
+      const props = lyr.feature?.properties || {};
+      const val = getPlotValue(props);
+
+      if(val === q || val.includes(q)){
+        found = {layer:lyr, cfg:item.cfg, props};
+      }
+    });
+  });
+
+  if(!found){
+    alert("Plot not found");
+    return;
+  }
+
+  if(highlightLayer){
+    map.removeLayer(highlightLayer);
+    highlightLayer = null;
+  }
+
+  highlightLayer = L.geoJSON(found.layer.feature,{
+    style:{
+      color:"#00ffff",
+      weight:4,
+      fillColor:"#00ffff",
+      fillOpacity:0.35
+    }
+  }).addTo(map);
+
+  if(found.layer.getBounds){
+    map.fitBounds(found.layer.getBounds(), {padding:[40,40], maxZoom:19});
+  }else if(found.layer.getLatLng){
+    map.setView(found.layer.getLatLng(), 19);
+  }
+
+  found.layer.openPopup();
+}
+
+function addManualMarker(){
+  const lat = parseFloat(document.getElementById("manualLat").value);
+  const lon = parseFloat(document.getElementById("manualLon").value);
+
+  if(isNaN(lat) || isNaN(lon)){
+    alert("Enter valid coordinates");
+    return;
+  }
+
+  if(searchMarker){
+    map.removeLayer(searchMarker);
+  }
+
+  const p = L.latLng(lat, lon);
+
+  searchMarker = L.marker(p).addTo(map);
+
+  L.marker(p,{
+    icon:measureLabelIcon(
+      lat.toFixed(6) + "<br>" + lon.toFixed(6)
+    )
+  }).addTo(map);
+
+  map.setView(p, 18);
+}
 </script>
 
 </body>
