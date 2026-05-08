@@ -81,17 +81,53 @@ html,body{
   font-size:13px;
 }
 
+.search-toggle{
+  position:absolute;
+  top:235px;
+  left:10px;
+  z-index:1000;
+  width:34px;
+  height:34px;
+  border:1px solid #aaa;
+  background:white;
+  border-radius:4px;
+  box-shadow:0 1px 5px rgba(0,0,0,.25);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  font-size:20px;
+}
+
 .search-panel{
   position:absolute;
   top:82px;
   left:55px;
   z-index:1000;
-  width:250px;
-  background:rgba(255,255,255,.94);
+  width:260px;
+  background:rgba(255,255,255,.96);
   backdrop-filter:blur(10px);
   border-radius:14px;
-  padding:8px;
-  box-shadow:0 6px 22px rgba(0,0,0,.22);
+  padding:10px;
+  box-shadow:0 6px 22px rgba(0,0,0,.25);
+  display:none;
+}
+.search-panel.show{display:block;}
+
+.search-panel .close-search{
+  position:absolute;
+  top:6px;
+  right:9px;
+  border:0;
+  background:transparent;
+  font-size:20px;
+  cursor:pointer;
+  color:#334155;
+}
+.search-panel h3{
+  margin:0 0 8px;
+  font-size:14px;
+  color:#0f172a;
 }
 .search-panel input{
   width:100%;
@@ -102,7 +138,7 @@ html,body{
   font-size:12px;
   margin-bottom:6px;
 }
-.search-panel button{
+.search-panel button.main-btn{
   width:100%;
   border:0;
   border-radius:8px;
@@ -119,10 +155,18 @@ html,body{
   margin-top:6px;
 }
 .coord-row input{margin-bottom:0;}
-.coord-row button{padding:7px 4px;}
+.coord-row button{
+  border:0;
+  border-radius:8px;
+  background:#0f172a;
+  color:white;
+  font-size:12px;
+  cursor:pointer;
+}
 
-.measure-label{
-  background:rgba(15,23,42,.82);
+.measure-label,
+.coord-label{
+  background:rgba(15,23,42,.86);
   color:white;
   padding:3px 6px;
   border-radius:7px;
@@ -132,6 +176,20 @@ html,body{
   box-shadow:0 2px 8px rgba(0,0,0,.25);
   text-align:center;
   pointer-events:none;
+}
+
+.leaflet-tooltip.coord-tooltip{
+  background:rgba(15,23,42,.86);
+  color:#fff;
+  border:0;
+  border-radius:7px;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);
+  font-size:10px;
+  line-height:1.25;
+  padding:3px 6px;
+}
+.leaflet-tooltip.coord-tooltip:before{
+  display:none;
 }
 
 @media(max-width:700px){
@@ -148,23 +206,35 @@ html,body{
   .title b{font-size:14px;}
   .title span{font-size:10px;}
 
+  .search-toggle{
+    top:236px;
+    left:10px;
+    width:34px;
+    height:34px;
+    font-size:19px;
+  }
+
   .search-panel{
-    top:58px;
-    left:78px;
-    width:190px;
-    padding:6px;
+    top:72px;
+    left:58px;
+    width:215px;
+    padding:8px;
+  }
+  .search-panel h3{
+    font-size:12px;
+    margin-bottom:6px;
   }
   .search-panel input{
-    padding:5px;
-    font-size:10px;
-    margin-bottom:4px;
+    padding:6px;
+    font-size:11px;
+    margin-bottom:5px;
   }
-  .search-panel button{
-    padding:5px;
-    font-size:10px;
+  .search-panel button.main-btn{
+    padding:6px;
+    font-size:11px;
   }
   .coord-row{
-    grid-template-columns:1fr 1fr 44px;
+    grid-template-columns:1fr 1fr 48px;
     gap:4px;
   }
 
@@ -232,18 +302,6 @@ html,body{
     height:34px !important;
   }
 }
-  .coord-label{
-  background:rgba(15,23,42,.82);
-  color:#fff;
-  padding:3px 6px;
-  border-radius:7px;
-  font-size:10px;
-  line-height:1.2;
-  white-space:nowrap;
-  box-shadow:0 2px 8px rgba(0,0,0,.25);
-  text-align:center;
-  pointer-events:none;
-}
 </style>
 </head>
 
@@ -264,9 +322,14 @@ html,body{
 
 <div class="coords" id="coords">Lat: -- | Lon: --</div>
 
-<div class="search-panel">
+<div class="search-toggle" onclick="toggleSearchPanel()">🔍</div>
+
+<div class="search-panel" id="searchPanel">
+  <button class="close-search" onclick="toggleSearchPanel()">×</button>
+  <h3>Search / Add Coordinates</h3>
+
   <input id="plotSearch" type="text" placeholder="Search plot number">
-  <button onclick="searchPlot()">Search</button>
+  <button class="main-btn" onclick="searchPlot()">Search</button>
 
   <div class="coord-row">
     <input id="manualLat" type="text" placeholder="Lat">
@@ -312,6 +375,10 @@ L.control.layers({
   "OpenStreetMap": osm
 }, null, {position:'topright'}).addTo(map);
 
+function toggleSearchPanel(){
+  document.getElementById("searchPanel").classList.toggle("show");
+}
+
 function normalizeSearchValue(v){
   return String(v ?? "")
     .replace(/[\u200E\u200F\u202A-\u202E]/g, "")
@@ -325,21 +392,12 @@ function normalizeSearchValue(v){
 function formatPopupValue(key, val){
   const k = String(key).toLowerCase();
 
-  if(
-    k.includes("shape_area") ||
-    k.includes("area") ||
-    k.includes("مساح")
-  ){
+  if(k.includes("shape_area") || k.includes("area") || k.includes("مساح")){
     const n = Number(val);
     if(!isNaN(n)) return Math.round(n) + " m²";
   }
 
-  if(
-    k.includes("shape_leng") ||
-    k.includes("length") ||
-    k.includes("perimeter") ||
-    k.includes("محيط")
-  ){
+  if(k.includes("shape_leng") || k.includes("length") || k.includes("perimeter") || k.includes("محيط")){
     const n = Number(val);
     if(!isNaN(n)) return Math.round(n) + " m";
   }
@@ -349,7 +407,6 @@ function formatPopupValue(key, val){
 
 function isIgnoredSearchKey(k){
   const key = normalizeSearchValue(k).toLowerCase();
-
   return (
     key === "objectid" ||
     key === "fid" ||
@@ -382,7 +439,6 @@ const layersConfig = [
 ];
 
 let allFeatureLayers = [];
-let searchMarker = null;
 let highlightLayer = null;
 
 const loadedLayers = {};
@@ -420,7 +476,6 @@ layersConfig.forEach((cfg, i)=>{
 
         pointToLayer: function(feature, latlng){
           const r = cfg.name === "Religious" ? 10 : 7;
-
           return L.circleMarker(latlng,{
             radius:r,
             color:cfg.color,
@@ -436,7 +491,6 @@ layersConfig.forEach((cfg, i)=>{
 
           Object.keys(props).forEach(k=>{
             let val = props[k];
-
             if(val !== null && val !== ""){
               val = formatPopupValue(k, val);
               html += `<b>${k}</b>: ${val}<br>`;
@@ -450,9 +504,7 @@ layersConfig.forEach((cfg, i)=>{
       loadedLayers[id] = layer;
       allFeatureLayers.push({layer:layer, cfg:cfg});
 
-      if(cfg.checked){
-        layer.addTo(map);
-      }
+      if(cfg.checked) layer.addTo(map);
 
       boundsGroup.addLayer(layer);
 
@@ -499,17 +551,6 @@ map.on("mousemove", e=>{
     "Lat: " + e.latlng.lat.toFixed(6) + " | Lon: " + e.latlng.lng.toFixed(6);
 });
 
-map.on("click", e=>{
-  L.popup()
-    .setLatLng(e.latlng)
-    .setContent(
-      "<b>Coordinates</b><br>" +
-      "Lat: " + e.latlng.lat.toFixed(6) + "<br>" +
-      "Lon: " + e.latlng.lng.toFixed(6)
-    )
-    .openOn(map);
-});
-
 const drawnItems = new L.FeatureGroup();
 map.addLayer(drawnItems);
 
@@ -519,13 +560,8 @@ const measureLabelIcon = (text) => L.divIcon({
   iconSize: null
 });
 
-function formatM(v){
-  return Math.round(v) + " m";
-}
-
-function formatM2(v){
-  return Math.round(v) + " m²";
-}
+function formatM(v){return Math.round(v) + " m";}
+function formatM2(v){return Math.round(v) + " m²";}
 
 function lineLength(latlngs){
   let total = 0;
@@ -553,15 +589,33 @@ function polygonPerimeter(latlngs){
 function centerOf(latlngs){
   let lat = 0, lng = 0;
   latlngs.forEach(p => { lat += p.lat; lng += p.lng; });
-  return L.latLng(lat / latlngs.length, lng / lngs.length);
-}
-</script>
-
-<script>
-function centerOf(latlngs){
-  let lat = 0, lng = 0;
-  latlngs.forEach(p => { lat += p.lat; lng += p.lng; });
   return L.latLng(lat / latlngs.length, lng / latlngs.length);
+}
+
+function bindCoordinateTooltip(marker){
+  const p = marker.getLatLng();
+  marker.bindTooltip(
+    p.lat.toFixed(6) + "<br>" + p.lng.toFixed(6),
+    {
+      permanent:true,
+      direction:"top",
+      offset:[0,-32],
+      className:"coord-tooltip",
+      opacity:1
+    }
+  );
+
+  marker.on("drag", function(e){
+    const np = e.target.getLatLng();
+    e.target.setTooltipContent(np.lat.toFixed(6) + "<br>" + np.lng.toFixed(6));
+  });
+}
+
+function addEditableCoordinateMarker(lat, lon){
+  const marker = L.marker([lat, lon], {draggable:true});
+  bindCoordinateTooltip(marker);
+  drawnItems.addLayer(marker);
+  map.setView([lat, lon], 18);
 }
 
 const drawControl = new L.Control.Draw({
@@ -580,34 +634,28 @@ map.addControl(drawControl);
 
 map.on(L.Draw.Event.CREATED, function(e){
   const layer = e.layer;
-  drawnItems.addLayer(layer);
 
   if(e.layerType === "polyline"){
+    drawnItems.addLayer(layer);
     const pts = layer.getLatLngs();
     const len = lineLength(pts);
     const mid = pts[Math.floor(pts.length / 2)];
-
-    L.marker(mid,{
-      icon:measureLabelIcon(formatM(len))
-    }).addTo(drawnItems);
+    L.marker(mid,{icon:measureLabelIcon(formatM(len))}).addTo(map);
   }
 
   if(e.layerType === "polygon"){
+    drawnItems.addLayer(layer);
     const pts = layer.getLatLngs()[0];
     const area = polygonArea(pts);
     const perimeter = polygonPerimeter(pts);
     const center = centerOf(pts);
-
-    L.marker(center,{
-      icon:measureLabelIcon(formatM2(area) + "<br>" + formatM(perimeter))
-    }).addTo(drawnItems);
+    L.marker(center,{icon:measureLabelIcon(formatM2(area) + "<br>" + formatM(perimeter))}).addTo(map);
   }
 
   if(e.layerType === "marker"){
-  drawnItems.removeLayer(layer);
-  const p = layer.getLatLng();
-  addEditableCoordinateMarker(p.lat, p.lng);
-}
+    const p = layer.getLatLng();
+    addEditableCoordinateMarker(p.lat, p.lng);
+  }
 });
 
 L.control.scale({position:'bottomleft'}).addTo(map);
@@ -659,39 +707,7 @@ function searchPlot(){
 
   found.layer.openPopup();
 }
-function addEditableCoordinateMarker(lat, lon){
-  const p = L.latLng(lat, lon);
 
-  const marker = L.marker(p, {
-    draggable:true
-  });
-
-  const label = L.marker(p, {
-    interactive:false,
-    icon:L.divIcon({
-      className:"coord-label",
-      html:lat.toFixed(6) + "<br>" + lon.toFixed(6),
-      iconSize:null,
-      iconAnchor:[35,38]
-    })
-  });
-
-  const group = L.layerGroup([marker, label]);
-
-  marker.on("drag", function(e){
-    const np = e.target.getLatLng();
-    label.setLatLng(np);
-    label.setIcon(L.divIcon({
-      className:"coord-label",
-      html:np.lat.toFixed(6) + "<br>" + np.lng.toFixed(6),
-      iconSize:null,
-      iconAnchor:[35,38]
-    }));
-  });
-
-  drawnItems.addLayer(group);
-  map.setView(p, 18);
-}
 function addManualMarker(){
   const lat = parseFloat(document.getElementById("manualLat").value);
   const lon = parseFloat(document.getElementById("manualLon").value);
