@@ -123,11 +123,11 @@ html,body{
   }
 
   #layerList{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:2px 8px;
-    margin-top:4px;
-  }
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:2px 6px;
+  margin-top:4px;
+}
 
   .layer{
     margin:0;
@@ -168,6 +168,20 @@ html,body{
 
   .leaflet-bottom.leaflet-left{
     bottom:130px !important;
+  }
+
+  .leaflet-top.leaflet-right{
+   top:10px !important;
+   right:10px !important;
+  }
+
+  .leaflet-control-layers{
+   margin:0 !important;
+  }
+
+  .leaflet-control-layers-toggle{
+  width:34px !important;
+  height:34px !important;
   }
 }
 </style>
