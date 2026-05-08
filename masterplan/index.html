@@ -184,6 +184,18 @@ html,body{
   height:34px !important;
   }
 }
+  .measure-label{
+  background:rgba(15,23,42,.82);
+  color:white;
+  padding:3px 6px;
+  border-radius:7px;
+  font-size:10px;
+  line-height:1.25;
+  white-space:nowrap;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);
+  text-align:center;
+  pointer-events:none;
+}
 </style>
 </head>
 
@@ -239,7 +251,7 @@ L.control.layers({
   "Satellite": esriHybrid,
   "Imagery": esriImagery,
   "OpenStreetMap": osm
-}, null, {position:'bottomright'}).addTo(map);
+}, null, {position:'topright'}).addTo(map);
 
 const layersConfig = [
 
@@ -540,13 +552,56 @@ map.on("click", e=>{
 const drawnItems = new L.FeatureGroup();
 map.addLayer(drawnItems);
 
+const measureLabelIcon = (text) => L.divIcon({
+  className: "measure-label",
+  html: text,
+  iconSize: null
+});
+
+function formatM(v){
+  return Math.round(v) + " m";
+}
+
+function formatM2(v){
+  return Math.round(v) + " m²";
+}
+
+function lineLength(latlngs){
+  let total = 0;
+  for(let i=1;i<latlngs.length;i++){
+    total += latlngs[i-1].distanceTo(latlngs[i]);
+  }
+  return total;
+}
+
+function polygonArea(latlngs){
+  let area = 0;
+  const pts = latlngs.map(p => map.latLngToLayerPoint(p));
+  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+    area += (pts[j].x + pts[i].x) * (pts[j].y - pts[i].y);
+  }
+  return Math.abs(area / 2) * Math.pow(40075016.686 / (256 * Math.pow(2, map.getZoom())), 2);
+}
+
+function polygonPerimeter(latlngs){
+  let total = lineLength(latlngs);
+  total += latlngs[latlngs.length-1].distanceTo(latlngs[0]);
+  return total;
+}
+
+function centerOf(latlngs){
+  let lat = 0, lng = 0;
+  latlngs.forEach(p => { lat += p.lat; lng += p.lng; });
+  return L.latLng(lat / latlngs.length, lng / latlngs.length);
+}
+
 const drawControl = new L.Control.Draw({
   position:'topleft',
   edit:{featureGroup:drawnItems},
   draw:{
     polygon:true,
     polyline:true,
-    rectangle:true,
+    rectangle:false,
     circle:false,
     circlemarker:false,
     marker:true
@@ -555,7 +610,39 @@ const drawControl = new L.Control.Draw({
 map.addControl(drawControl);
 
 map.on(L.Draw.Event.CREATED, function(e){
-  drawnItems.addLayer(e.layer);
+  const layer = e.layer;
+  drawnItems.addLayer(layer);
+
+  if(e.layerType === "polyline"){
+    const pts = layer.getLatLngs();
+    const len = lineLength(pts);
+    const mid = pts[Math.floor(pts.length / 2)];
+
+    L.marker(mid,{
+      icon:measureLabelIcon(formatM(len))
+    }).addTo(drawnItems);
+  }
+
+  if(e.layerType === "polygon"){
+    const pts = layer.getLatLngs()[0];
+    const area = polygonArea(pts);
+    const perimeter = polygonPerimeter(pts);
+    const center = centerOf(pts);
+
+    L.marker(center,{
+      icon:measureLabelIcon(formatM2(area) + "<br>" + formatM(perimeter))
+    }).addTo(drawnItems);
+  }
+
+  if(e.layerType === "marker"){
+    const p = layer.getLatLng();
+
+    L.marker(p,{
+      icon:measureLabelIcon(
+        p.lat.toFixed(6) + "<br>" + p.lng.toFixed(6)
+      )
+    }).addTo(drawnItems);
+  }
 });
 
 L.control.scale({position:'bottomleft'}).addTo(map);
