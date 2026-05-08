@@ -749,22 +749,14 @@ let highlightLayer = null;
 function getPlotValue(props){
   const keys = Object.keys(props || {});
 
-  const candidates = [
-    "رقم_القطعة",
-    "رقم القطعة",
-    "OBJECTID",
-    "FID",
-    "ID",
-    "Name",
-    "name"
-  ];
+  const found = keys.find(k =>
+    k === "رقم_القطعة" ||
+    k.includes("رقم_القطعة") ||
+    k.includes("رقم القطعة")
+  );
 
-  for(const c of candidates){
-    const found = keys.find(k => k.trim().toLowerCase() === c.trim().toLowerCase());
-
-    if(found && props[found] !== null && props[found] !== ""){
-      return String(props[found]).trim();
-    }
+  if(found && props[found] !== null && props[found] !== ""){
+    return String(props[found]).trim();
   }
 
   return "";
