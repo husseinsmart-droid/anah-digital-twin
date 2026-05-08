@@ -500,7 +500,10 @@ const layersConfig = [
   }
 
 ];
-
+  let allFeatureLayers = [];
+let searchMarker = null;
+let highlightLayer = null;
+  
 const loadedLayers = {};
 const layerList = document.getElementById("layerList");
 const boundsGroup = L.featureGroup();
@@ -742,33 +745,31 @@ map.on(L.Draw.Event.CREATED, function(e){
 
 L.control.scale({position:'bottomleft'}).addTo(map);
 
-  let allFeatureLayers = [];
-let searchMarker = null;
-let highlightLayer = null;
+function normalizeText(v){
+  return String(v ?? "")
+    .replace(/[\u200E\u200F\u202A-\u202E]/g, "")
+    .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d))
+    .replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+    .trim();
+}
 
 function getPlotValue(props){
   const keys = Object.keys(props || {});
 
   for(const k of keys){
-    const cleanKey = String(k)
-      .replace(/[\u200E\u200F\u202A-\u202E]/g, "")
-      .trim();
+    const cleanKey = normalizeText(k);
 
-    if(
-      cleanKey.includes("قطعة") ||
-      cleanKey.includes("القطعة") ||
-      cleanKey.includes("رقم_القطعة") ||
-      cleanKey.includes("رقم")
-    ){
+    if(cleanKey.includes("قطعة")){
       const v = props[k];
       if(v !== null && v !== ""){
-        return String(v).trim();
+        return normalizeText(v);
       }
     }
   }
 
   return "";
 }
+  
 function searchPlot(){
   const q = document.getElementById("plotSearch").value.trim();
   if(!q) return;
@@ -780,7 +781,7 @@ function searchPlot(){
       const props = lyr.feature?.properties || {};
       const val = getPlotValue(props);
 
-if(String(val).trim() === String(q).trim()){
+if(normalizeText(val) === normalizeText(q)){
   found = {layer:lyr, cfg:item.cfg, props};
       }
     });
