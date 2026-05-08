@@ -749,19 +749,26 @@ let highlightLayer = null;
 function getPlotValue(props){
   const keys = Object.keys(props || {});
 
-  const found = keys.find(k =>
-    k === "رقم_القطعة" ||
-    k.includes("رقم_القطعة") ||
-    k.includes("رقم القطعة")
-  );
+  for(const k of keys){
+    const cleanKey = String(k)
+      .replace(/[\u200E\u200F\u202A-\u202E]/g, "")
+      .trim();
 
-  if(found && props[found] !== null && props[found] !== ""){
-    return String(props[found]).trim();
+    if(
+      cleanKey.includes("قطعة") ||
+      cleanKey.includes("القطعة") ||
+      cleanKey.includes("رقم_القطعة") ||
+      cleanKey.includes("رقم")
+    ){
+      const v = props[k];
+      if(v !== null && v !== ""){
+        return String(v).trim();
+      }
+    }
   }
 
   return "";
 }
-
 function searchPlot(){
   const q = document.getElementById("plotSearch").value.trim();
   if(!q) return;
