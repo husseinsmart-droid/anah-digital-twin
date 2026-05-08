@@ -211,37 +211,157 @@ L.control.layers({
 }, null, {position:'bottomright'}).addTo(map);
 
 const layersConfig = [
-  {name:"Master Plan Boundary", file:"master plan boundary.geojson", color:"#ef4444", fill:"#ffffff", opacity:0.03, weight:3, checked:true},
 
-  {name:"Green Areas", file:"GreenArea.geojson", color:"#16a34a", fill:"#39ff14", opacity:0.65, weight:1, checked:true},
+  {
+    name:"Master Plan Boundary",
+    file:"master plan boundary.geojson",
+    color:"#ff3b3b",
+    fill:"#ffffff",
+    opacity:0.02,
+    weight:3,
+    checked:true
+  },
 
-  {name:"Residential", file:"Residential.geojson", color:"#8a8a00", fill:"#fff200", opacity:0.70, weight:0.7, checked:true},
+  {
+    name:"Residential",
+    file:"Residential.geojson",
+    color:"#9a9a00",
+    fill:"#ffff00",
+    opacity:0.72,
+    weight:0.7,
+    checked:true
+  },
 
-  {name:"Proposed Residential", file:"Proposed_Residential.geojson", color:"#b45309", fill:"#f59e0b", opacity:0.65, weight:1, checked:true},
+  {
+    name:"Proposed Residential",
+    file:"Proposed_Residential.geojson",
+    color:"#d99000",
+    fill:"#ffd27a",
+    opacity:0.72,
+    weight:1,
+    checked:true
+  },
 
-  {name:"Vertical Residential", file:"Vertical_Residential.geojson", color:"#92400e", fill:"#f97316", opacity:0.75, weight:1, checked:true},
+  {
+    name:"Vertical Residential",
+    file:"Vertical_Residential.geojson",
+    color:"#5e0000",
+    fill:"#8b0000",
+    opacity:0.82,
+    weight:1,
+    checked:true
+  },
 
-  {name:"Commercial", file:"Commercial.geojson", color:"#991b1b", fill:"#dc2626", opacity:0.75, weight:1, checked:true},
+  {
+    name:"Commercial",
+    file:"Commercial.geojson",
+    color:"#b10000",
+    fill:"#ff0000",
+    opacity:0.82,
+    weight:1,
+    checked:true
+  },
 
-  {name:"Proposed Commercial", file:"Proposed_Commercial.geojson", color:"#7f1d1d", fill:"#fb7185", opacity:0.65, weight:1, checked:true},
+  {
+    name:"Industrial",
+    file:"Industrial.geojson",
+    color:"#6f00b5",
+    fill:"#a000ff",
+    opacity:0.78,
+    weight:1,
+    checked:true
+  },
 
-  {name:"Industrial", file:"Industrial.geojson", color:"#6b21a8", fill:"#a855f7", opacity:0.70, weight:1, checked:true},
+  {
+    name:"Public Use",
+    file:"PublicUse.geojson",
+    color:"#6b8ea3",
+    fill:"#c7ddeb",
+    opacity:0.82,
+    weight:1,
+    checked:true
+  },
 
-  {name:"Public Use", file:"PublicUse.geojson", color:"#0369a1", fill:"#bae6fd", opacity:0.75, weight:1, checked:true},
+  {
+    name:"Educational",
+    file:"Educational.geojson",
+    color:"#003d99",
+    fill:"#0057c2",
+    opacity:0.85,
+    weight:1,
+    checked:true
+  },
 
-  {name:"Educational", file:"Educational.geojson", color:"#1d4ed8", fill:"#3b82f6", opacity:0.75, weight:1, checked:true},
+  {
+    name:"Health",
+    file:"Health.geojson",
+    color:"#b86ca1",
+    fill:"#e5acd1",
+    opacity:0.88,
+    weight:1,
+    checked:true
+  },
 
-  {name:"Health", file:"Health.geojson", color:"#be185d", fill:"#ec4899", opacity:0.85, weight:1, checked:true},
+  {
+    name:"Green Areas",
+    file:"GreenArea.geojson",
+    color:"#238f00",
+    fill:"#38b000",
+    opacity:0.72,
+    weight:1,
+    checked:true
+  },
 
-  {name:"Religious", file:"Religious.geojson", color:"#facc15", fill:"#facc15", opacity:0.95, weight:2, checked:true},
+  {
+    name:"Religious",
+    file:"Religious.geojson",
+    color:"#c69a2d",
+    fill:"#f2c96d",
+    opacity:0.90,
+    weight:1.5,
+    checked:true
+  },
 
-  {name:"Tourist", file:"Tourist.geojson", color:"#65a30d", fill:"#d9f99d", opacity:0.75, weight:1, checked:true},
+  {
+    name:"Tourist",
+    file:"Tourist.geojson",
+    color:"#8c6500",
+    fill:"#b8860b",
+    opacity:0.82,
+    weight:1,
+    checked:true
+  },
 
-  {name:"Oil Station", file:"Oil station.geojson", color:"#0369a1", fill:"#0ea5e9", opacity:0.90, weight:1, checked:true},
+  {
+    name:"Oil Station",
+    file:"Oil station.geojson",
+    color:"#0077a8",
+    fill:"#00a8e8",
+    opacity:0.90,
+    weight:1,
+    checked:true
+  },
 
-  {name:"Cemetery", file:"cemetery.geojson", color:"#57534e", fill:"#d6d3d1", opacity:0.80, weight:1, checked:true},
+  {
+    name:"Cemetery",
+    file:"cemetery.geojson",
+    color:"#b89952",
+    fill:"#f0c96b",
+    opacity:0.80,
+    weight:1,
+    checked:true
+  },
 
-  {name:"Roads", file:"Roads.geojson", color:"#111827", fill:"#6b7280", opacity:0.95, weight:2.5, checked:true}
+  {
+    name:"Roads",
+    file:"Roads.geojson",
+    color:"#555555",
+    fill:"#8a8a8a",
+    opacity:0.95,
+    weight:2.2,
+    checked:true
+  }
+
 ];
 
 const loadedLayers = {};
