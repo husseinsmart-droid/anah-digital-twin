@@ -419,17 +419,22 @@ layersConfig.forEach((cfg, i)=>{
     if(val !== null && val !== ""){
       const key = k.toLowerCase();
 
-      if(
-        key.includes("area") ||
-        key.includes("مساح") ||
-        key.includes("shape_area") ||
-        key.includes("shape_leng") ||
-        key.includes("length") ||
-        key.includes("perimeter") ||
-        key.includes("محيط")
-      ){
-        val = Math.round(Number(val));
-      }
+     if(
+  key.includes("shape_area") ||
+  key.includes("area") ||
+  key.includes("مساح")
+){
+  val = Math.round(Number(val)) + " m²";
+}
+
+else if(
+  key.includes("shape_leng") ||
+  key.includes("length") ||
+  key.includes("perimeter") ||
+  key.includes("محيط")
+){
+  val = Math.round(Number(val)) + " m";
+}
 
       html += `<b>${k}</b>: ${val}<br>`;
     }
