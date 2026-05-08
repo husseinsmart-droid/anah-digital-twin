@@ -753,25 +753,20 @@ function normalizeText(v){
     .trim();
 }
 
-function getPlotValue(props){
-  const keys = Object.keys(props || {});
-
-  for(const k of keys){
-    const cleanKey = normalizeText(k);
-
-    if(cleanKey.includes("قطعة")){
-      const v = props[k];
-      if(v !== null && v !== ""){
-        return normalizeText(v);
-      }
-    }
-  }
-
-  return "";
+function isIgnoredKey(k){
+  const key = normalizeText(k).toLowerCase();
+  return (
+    key === "objectid" ||
+    key === "fid" ||
+    key === "oid" ||
+    key.includes("shape") ||
+    key.includes("area") ||
+    key.includes("length")
+  );
 }
-  
+
 function searchPlot(){
-  const q = document.getElementById("plotSearch").value.trim();
+  const q = normalizeText(document.getElementById("plotSearch").value);
   if(!q) return;
 
   let found = null;
@@ -779,11 +774,17 @@ function searchPlot(){
   allFeatureLayers.forEach(item=>{
     item.layer.eachLayer(lyr=>{
       const props = lyr.feature?.properties || {};
-      const val = getPlotValue(props);
 
-if(normalizeText(val) === normalizeText(q)){
-  found = {layer:lyr, cfg:item.cfg, props};
-      }
+      Object.keys(props).forEach(k=>{
+        if(isIgnoredKey(k)) return;
+
+        const key = normalizeText(k);
+        const val = normalizeText(props[k]);
+
+        if(key.includes("قطعة") && val === q){
+          found = {layer:lyr, cfg:item.cfg, props};
+        }
+      });
     });
   });
 
@@ -807,14 +808,12 @@ if(normalizeText(val) === normalizeText(q)){
   }).addTo(map);
 
   if(found.layer.getBounds){
-    map.fitBounds(found.layer.getBounds(), {padding:[40,40], maxZoom:19});
-  }else if(found.layer.getLatLng){
-    map.setView(found.layer.getLatLng(), 19);
+    map.fitBounds(found.layer.getBounds(), {padding:[40,40], maxZoom:20});
   }
 
   found.layer.openPopup();
 }
-
+  
 function addManualMarker(){
   const lat = parseFloat(document.getElementById("manualLat").value);
   const lon = parseFloat(document.getElementById("manualLon").value);
