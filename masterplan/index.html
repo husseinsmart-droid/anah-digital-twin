@@ -347,6 +347,13 @@ L.control.layers({
   "OpenStreetMap": osm
 }, null, {position:'topright'}).addTo(map);
 
+function normalizeText(v){
+  return String(v ?? "")
+    .replace(/[\u200E\u200F\u202A-\u202E]/g, "")
+    .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d))
+    .replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+    .trim();
+}  
 const layersConfig = [
 
   {
@@ -552,8 +559,13 @@ layersConfig.forEach((cfg, i)=>{
         onEachFeature: function(feature, lyr){
   const props = feature.properties || {};
   let html = `<b>${cfg.name}</b><hr>`;
+          lyr._plotNo = "";
 
   Object.keys(props).forEach(k=>{
+    const cleanKey = normalizeText(k);
+if(cleanKey.includes("قطعة")){
+  lyr._plotNo = normalizeText(props[k]);
+}
     let val = props[k];
 
     if(val !== null && val !== ""){
@@ -773,18 +785,9 @@ function searchPlot(){
 
   allFeatureLayers.forEach(item=>{
     item.layer.eachLayer(lyr=>{
-      const props = lyr.feature?.properties || {};
-
-      Object.keys(props).forEach(k=>{
-        if(isIgnoredKey(k)) return;
-
-        const key = normalizeText(k);
-        const val = normalizeText(props[k]);
-
-        if(key.includes("قطعة") && val === q){
-          found = {layer:lyr, cfg:item.cfg, props};
-        }
-      });
+      if(normalizeText(lyr._plotNo) === q){
+        found = {layer:lyr, cfg:item.cfg};
+      }
     });
   });
 
@@ -807,10 +810,7 @@ function searchPlot(){
     }
   }).addTo(map);
 
-  if(found.layer.getBounds){
-    map.fitBounds(found.layer.getBounds(), {padding:[40,40], maxZoom:20});
-  }
-
+  map.fitBounds(found.layer.getBounds(), {padding:[40,40], maxZoom:20});
   found.layer.openPopup();
 }
   
