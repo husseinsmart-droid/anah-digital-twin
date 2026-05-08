@@ -397,26 +397,46 @@ layersConfig.forEach((cfg, i)=>{
           };
         },
 
-        pointToLayer: function(feature, latlng){
-          return L.circleMarker(latlng,{
-            radius:8,
-            color:cfg.color,
-            weight:2,
-            fillColor:cfg.fill,
-            fillOpacity:0.95
-          });
-        },
+       pointToLayer: function(feature, latlng){
+  let r = cfg.name === "Religious" ? 10 : 7;
+
+  return L.circleMarker(latlng,{
+    radius:r,
+    color:cfg.color,
+    weight:2.5,
+    fillColor:cfg.fill,
+    fillOpacity:1
+  });
+},
 
         onEachFeature: function(feature, lyr){
-          const props = feature.properties || {};
-          let html = `<b>${cfg.name}</b><hr>`;
-          Object.keys(props).forEach(k=>{
-            if(props[k] !== null && props[k] !== ""){
-              html += `<b>${k}</b>: ${props[k]}<br>`;
-            }
-          });
-          lyr.bindPopup(html);
-        }
+  const props = feature.properties || {};
+  let html = `<b>${cfg.name}</b><hr>`;
+
+  Object.keys(props).forEach(k=>{
+    let val = props[k];
+
+    if(val !== null && val !== ""){
+      const key = k.toLowerCase();
+
+      if(
+        key.includes("area") ||
+        key.includes("مساح") ||
+        key.includes("shape_area") ||
+        key.includes("shape_leng") ||
+        key.includes("length") ||
+        key.includes("perimeter") ||
+        key.includes("محيط")
+      ){
+        val = Math.round(Number(val));
+      }
+
+      html += `<b>${k}</b>: ${val}<br>`;
+    }
+  });
+
+  lyr.bindPopup(html);
+}
       });
 
       loadedLayers[id] = layer;
@@ -452,12 +472,13 @@ function bringImportantLayersToFront(){
     if(!layer || !map.hasLayer(layer)) return;
 
     if(
-      cfg.name === "Master Plan Boundary" ||
-      cfg.name === "Commercial Line" ||
       cfg.name === "Religious" ||
       cfg.name === "Health" ||
       cfg.name === "Educational" ||
-      cfg.name === "Roads"
+      cfg.name === "Commercial" ||
+      cfg.name === "Oil Station" ||
+      cfg.name === "Roads" ||
+      cfg.name === "Master Plan Boundary"
     ){
       layer.bringToFront();
     }
