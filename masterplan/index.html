@@ -18,6 +18,20 @@ html,body{
 }
 #map{width:100%;height:100%;}
 
+.title{
+  position:absolute;
+  top:14px;
+  left:55px;
+  z-index:1000;
+  background:rgba(15,23,42,.82);
+  color:#fff;
+  padding:10px 16px;
+  border-radius:14px;
+  box-shadow:0 6px 20px rgba(0,0,0,.25);
+}
+.title b{font-size:17px;}
+.title span{display:block;font-size:12px;color:#cbd5e1;}
+
 .panel{
   position:absolute;
   top:14px;
@@ -54,6 +68,7 @@ html,body{
   border:1px solid #555;
   flex:0 0 16px;
 }
+
 .coords{
   position:absolute;
   bottom:12px;
@@ -65,19 +80,59 @@ html,body{
   border-radius:10px;
   font-size:13px;
 }
-.title{
+
+.search-panel{
   position:absolute;
-  top:14px;
+  top:82px;
   left:55px;
   z-index:1000;
-  background:rgba(15,23,42,.82);
-  color:#fff;
-  padding:10px 16px;
+  width:250px;
+  background:rgba(255,255,255,.94);
+  backdrop-filter:blur(10px);
   border-radius:14px;
-  box-shadow:0 6px 20px rgba(0,0,0,.25);
+  padding:8px;
+  box-shadow:0 6px 22px rgba(0,0,0,.22);
 }
-.title b{font-size:17px;}
-.title span{display:block;font-size:12px;color:#cbd5e1;}
+.search-panel input{
+  width:100%;
+  box-sizing:border-box;
+  border:1px solid #cbd5e1;
+  border-radius:8px;
+  padding:7px;
+  font-size:12px;
+  margin-bottom:6px;
+}
+.search-panel button{
+  width:100%;
+  border:0;
+  border-radius:8px;
+  padding:7px;
+  background:#0f172a;
+  color:white;
+  font-size:12px;
+  cursor:pointer;
+}
+.coord-row{
+  display:grid;
+  grid-template-columns:1fr 1fr 56px;
+  gap:5px;
+  margin-top:6px;
+}
+.coord-row input{margin-bottom:0;}
+.coord-row button{padding:7px 4px;}
+
+.measure-label{
+  background:rgba(15,23,42,.82);
+  color:white;
+  padding:3px 6px;
+  border-radius:7px;
+  font-size:10px;
+  line-height:1.25;
+  white-space:nowrap;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);
+  text-align:center;
+  pointer-events:none;
+}
 
 @media(max-width:700px){
 
@@ -90,13 +145,27 @@ html,body{
     border-radius:12px;
     text-align:center;
   }
+  .title b{font-size:14px;}
+  .title span{font-size:10px;}
 
-  .title b{
-    font-size:14px;
+  .search-panel{
+    top:58px;
+    left:78px;
+    width:190px;
+    padding:6px;
   }
-
-  .title span{
+  .search-panel input{
+    padding:5px;
     font-size:10px;
+    margin-bottom:4px;
+  }
+  .search-panel button{
+    padding:5px;
+    font-size:10px;
+  }
+  .coord-row{
+    grid-template-columns:1fr 1fr 44px;
+    gap:4px;
   }
 
   .panel{
@@ -111,47 +180,19 @@ html,body{
     overflow:auto;
     background:rgba(255,255,255,.94);
   }
-
   .panel h2{
     font-size:11px;
     margin:0;
     line-height:1.1;
   }
-
-  .panel small{
-    display:none;
-  }
-
-  .search-panel{
-  top:58px;
-  left:78px;
-  width:190px;
-  padding:6px;
-}
-
-.search-panel input{
-  padding:5px;
-  font-size:10px;
-  margin-bottom:4px;
-}
-
-.search-panel button{
-  padding:5px;
-  font-size:10px;
-}
-
-.coord-row{
-  grid-template-columns:1fr 1fr 44px;
-  gap:4px;
-}
+  .panel small{display:none;}
 
   #layerList{
-  display:grid;
-  grid-template-columns:1fr 1fr 1fr;
-  gap:2px 6px;
-  margin-top:4px;
-}
-
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:2px 6px;
+    margin-top:4px;
+  }
   .layer{
     margin:0;
     gap:4px;
@@ -159,13 +200,11 @@ html,body{
     line-height:1.15;
     white-space:nowrap;
   }
-
   .layer input{
     width:11px;
     height:11px;
     margin:0;
   }
-
   .swatch{
     width:9px;
     height:9px;
@@ -181,98 +220,17 @@ html,body{
     border-radius:8px;
   }
 
-  .leaflet-control-layers{
-    margin-bottom:132px !important;
-  }
-
-  .leaflet-bottom.leaflet-right{
-    bottom:130px !important;
-  }
-
-  .leaflet-bottom.leaflet-left{
-    bottom:130px !important;
-  }
-
   .leaflet-top.leaflet-right{
-   top:10px !important;
-   right:10px !important;
+    top:10px !important;
+    right:10px !important;
   }
-
   .leaflet-control-layers{
-   margin:0 !important;
+    margin:0 !important;
   }
-
   .leaflet-control-layers-toggle{
-  width:34px !important;
-  height:34px !important;
+    width:34px !important;
+    height:34px !important;
   }
-}
-  .measure-label{
-  background:rgba(15,23,42,.82);
-  color:white;
-  padding:3px 6px;
-  border-radius:7px;
-  font-size:10px;
-  line-height:1.25;
-  white-space:nowrap;
-  box-shadow:0 2px 8px rgba(0,0,0,.25);
-  text-align:center;
-  pointer-events:none;
-}
-
-  .search-panel{
-  position:absolute;
-  top:82px;
-  left:55px;
-  z-index:1000;
-  width:250px;
-  background:rgba(255,255,255,.94);
-  backdrop-filter:blur(10px);
-  border-radius:14px;
-  padding:8px;
-  box-shadow:0 6px 22px rgba(0,0,0,.22);
-}
-
-.search-panel input{
-  width:100%;
-  box-sizing:border-box;
-  border:1px solid #cbd5e1;
-  border-radius:8px;
-  padding:7px;
-  font-size:12px;
-  margin-bottom:6px;
-}
-
-.search-panel button{
-  width:100%;
-  border:0;
-  border-radius:8px;
-  padding:7px;
-  background:#0f172a;
-  color:white;
-  font-size:12px;
-  cursor:pointer;
-}
-
-.coord-row{
-  display:grid;
-  grid-template-columns:1fr 1fr 56px;
-  gap:5px;
-  margin-top:6px;
-}
-
-.coord-row input{
-  margin-bottom:0;
-}
-
-.coord-row button{
-  padding:7px 4px;
-}
-
-.search-highlight{
-  color:#00ffff;
-  weight:4;
-  fillOpacity:0.95;
 }
 </style>
 </head>
@@ -293,22 +251,17 @@ html,body{
 </div>
 
 <div class="coords" id="coords">Lat: -- | Lon: --</div>
+
 <div class="search-panel">
-
   <input id="plotSearch" type="text" placeholder="Search plot number">
-
   <button onclick="searchPlot()">Search</button>
 
   <div class="coord-row">
     <input id="manualLat" type="text" placeholder="Lat">
-
     <input id="manualLon" type="text" placeholder="Lon">
-
     <button onclick="addManualMarker()">Add</button>
   </div>
-
 </div>
-  
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
@@ -347,170 +300,79 @@ L.control.layers({
   "OpenStreetMap": osm
 }, null, {position:'topright'}).addTo(map);
 
-function normalizeText(v){
+function normalizeSearchValue(v){
   return String(v ?? "")
     .replace(/[\u200E\u200F\u202A-\u202E]/g, "")
     .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d))
     .replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
-    .trim();
-}  
-const layersConfig = [
+    .replace(/,/g, "")
+    .trim()
+    .replace(/\.0$/, "");
+}
 
-  {
-    name:"Master Plan Boundary",
-    file:"master plan boundary.geojson",
-    color:"#ff3b3b",
-    fill:"#ffffff",
-    opacity:0.02,
-    weight:3,
-    checked:true
-  },
+function formatPopupValue(key, val){
+  const k = String(key).toLowerCase();
 
-  {
-    name:"Residential",
-    file:"Residential.geojson",
-    color:"#9a9a00",
-    fill:"#ffff00",
-    opacity:0.72,
-    weight:0.7,
-    checked:true
-  },
-
-  {
-    name:"Proposed Residential",
-    file:"Proposed_Residential.geojson",
-    color:"#d99000",
-    fill:"#ffd27a",
-    opacity:0.72,
-    weight:1,
-    checked:true
-  },
-
-  {
-    name:"Vertical Residential",
-    file:"Vertical_Residential.geojson",
-    color:"#5e0000",
-    fill:"#8b0000",
-    opacity:0.82,
-    weight:1,
-    checked:true
-  },
-
-  {
-    name:"Commercial",
-    file:"Commercial.geojson",
-    color:"#b10000",
-    fill:"#ff0000",
-    opacity:0.82,
-    weight:1,
-    checked:true
-  },
-
-  {
-    name:"Industrial",
-    file:"Industrial.geojson",
-    color:"#6f00b5",
-    fill:"#a000ff",
-    opacity:0.78,
-    weight:1,
-    checked:true
-  },
-
-  {
-    name:"Public Use",
-    file:"PublicUse.geojson",
-    color:"#6b8ea3",
-    fill:"#c7ddeb",
-    opacity:0.82,
-    weight:1,
-    checked:true
-  },
-
-  {
-    name:"Educational",
-    file:"Educational.geojson",
-    color:"#003d99",
-    fill:"#0057c2",
-    opacity:0.85,
-    weight:1,
-    checked:true
-  },
-
-  {
-    name:"Health",
-    file:"Health.geojson",
-    color:"#b86ca1",
-    fill:"#e5acd1",
-    opacity:0.88,
-    weight:1,
-    checked:true
-  },
-
-  {
-    name:"Green Areas",
-    file:"GreenArea.geojson",
-    color:"#238f00",
-    fill:"#38b000",
-    opacity:0.72,
-    weight:1,
-    checked:true
-  },
-
-  {
-    name:"Religious",
-    file:"Religious.geojson",
-    color:"#c69a2d",
-    fill:"#f2c96d",
-    opacity:0.90,
-    weight:1.5,
-    checked:true
-  },
-
-  {
-    name:"Tourist",
-    file:"Tourist.geojson",
-    color:"#8c6500",
-    fill:"#b8860b",
-    opacity:0.82,
-    weight:1,
-    checked:true
-  },
-
-  {
-    name:"Oil Station",
-    file:"Oil station.geojson",
-    color:"#0077a8",
-    fill:"#00a8e8",
-    opacity:0.90,
-    weight:1,
-    checked:true
-  },
-
-  {
-    name:"Cemetery",
-    file:"cemetery.geojson",
-    color:"#b89952",
-    fill:"#f0c96b",
-    opacity:0.80,
-    weight:1,
-    checked:true
-  },
-
-  {
-    name:"Roads",
-    file:"Roads.geojson",
-    color:"#555555",
-    fill:"#8a8a8a",
-    opacity:0.95,
-    weight:2.2,
-    checked:true
+  if(
+    k.includes("shape_area") ||
+    k.includes("area") ||
+    k.includes("مساح")
+  ){
+    const n = Number(val);
+    if(!isNaN(n)) return Math.round(n) + " m²";
   }
 
+  if(
+    k.includes("shape_leng") ||
+    k.includes("length") ||
+    k.includes("perimeter") ||
+    k.includes("محيط")
+  ){
+    const n = Number(val);
+    if(!isNaN(n)) return Math.round(n) + " m";
+  }
+
+  return val;
+}
+
+function isIgnoredSearchKey(k){
+  const key = normalizeSearchValue(k).toLowerCase();
+
+  return (
+    key === "objectid" ||
+    key === "fid" ||
+    key === "oid" ||
+    key === "oid_" ||
+    key.includes("shape") ||
+    key.includes("area") ||
+    key.includes("length") ||
+    key.includes("مساح") ||
+    key.includes("محيط")
+  );
+}
+
+const layersConfig = [
+  {name:"Master Plan Boundary", file:"master plan boundary.geojson", color:"#ff3b3b", fill:"#ffffff", opacity:0.02, weight:3, checked:true},
+  {name:"Residential", file:"Residential.geojson", color:"#9a9a00", fill:"#ffff00", opacity:0.72, weight:0.7, checked:true},
+  {name:"Proposed Residential", file:"Proposed_Residential.geojson", color:"#d99000", fill:"#ffd27a", opacity:0.72, weight:1, checked:true},
+  {name:"Vertical Residential", file:"Vertical_Residential.geojson", color:"#5e0000", fill:"#8b0000", opacity:0.82, weight:1, checked:true},
+  {name:"Commercial", file:"Commercial.geojson", color:"#b10000", fill:"#ff0000", opacity:0.82, weight:1, checked:true},
+  {name:"Industrial", file:"Industrial.geojson", color:"#6f00b5", fill:"#a000ff", opacity:0.78, weight:1, checked:true},
+  {name:"Public Use", file:"PublicUse.geojson", color:"#6b8ea3", fill:"#c7ddeb", opacity:0.82, weight:1, checked:true},
+  {name:"Educational", file:"Educational.geojson", color:"#003d99", fill:"#0057c2", opacity:0.85, weight:1, checked:true},
+  {name:"Health", file:"Health.geojson", color:"#b86ca1", fill:"#e5acd1", opacity:0.88, weight:1, checked:true},
+  {name:"Green Areas", file:"GreenArea.geojson", color:"#238f00", fill:"#38b000", opacity:0.72, weight:1, checked:true},
+  {name:"Religious", file:"Religious.geojson", color:"#c69a2d", fill:"#f2c96d", opacity:0.90, weight:1.5, checked:true},
+  {name:"Tourist", file:"Tourist.geojson", color:"#8c6500", fill:"#b8860b", opacity:0.82, weight:1, checked:true},
+  {name:"Oil Station", file:"Oil station.geojson", color:"#0077a8", fill:"#00a8e8", opacity:0.90, weight:1, checked:true},
+  {name:"Cemetery", file:"cemetery.geojson", color:"#b89952", fill:"#f0c96b", opacity:0.80, weight:1, checked:true},
+  {name:"Roads", file:"Roads.geojson", color:"#555555", fill:"#8a8a8a", opacity:0.95, weight:2.2, checked:true}
 ];
-  let allFeatureLayers = [];
+
+let allFeatureLayers = [];
 let searchMarker = null;
 let highlightLayer = null;
-  
+
 const loadedLayers = {};
 const layerList = document.getElementById("layerList");
 const boundsGroup = L.featureGroup();
@@ -544,56 +406,33 @@ layersConfig.forEach((cfg, i)=>{
           };
         },
 
-       pointToLayer: function(feature, latlng){
-  let r = cfg.name === "Religious" ? 10 : 7;
+        pointToLayer: function(feature, latlng){
+          const r = cfg.name === "Religious" ? 10 : 7;
 
-  return L.circleMarker(latlng,{
-    radius:r,
-    color:cfg.color,
-    weight:2.5,
-    fillColor:cfg.fill,
-    fillOpacity:1
-  });
-},
+          return L.circleMarker(latlng,{
+            radius:r,
+            color:cfg.color,
+            weight:2.5,
+            fillColor:cfg.fill,
+            fillOpacity:1
+          });
+        },
 
         onEachFeature: function(feature, lyr){
-  const props = feature.properties || {};
-  let html = `<b>${cfg.name}</b><hr>`;
-          lyr._plotNo = "";
+          const props = feature.properties || {};
+          let html = `<b>${cfg.name}</b><hr>`;
 
-  Object.keys(props).forEach(k=>{
-    const cleanKey = normalizeText(k);
-if(cleanKey.includes("قطعة")){
-  lyr._plotNo = normalizeText(props[k]);
-}
-    let val = props[k];
+          Object.keys(props).forEach(k=>{
+            let val = props[k];
 
-    if(val !== null && val !== ""){
-      const key = k.toLowerCase();
+            if(val !== null && val !== ""){
+              val = formatPopupValue(k, val);
+              html += `<b>${k}</b>: ${val}<br>`;
+            }
+          });
 
-     if(
-  key.includes("shape_area") ||
-  key.includes("area") ||
-  key.includes("مساح")
-){
-  val = Math.round(Number(val)) + " m²";
-}
-
-else if(
-  key.includes("shape_leng") ||
-  key.includes("length") ||
-  key.includes("perimeter") ||
-  key.includes("محيط")
-){
-  val = Math.round(Number(val)) + " m";
-}
-
-      html += `<b>${k}</b>: ${val}<br>`;
-    }
-  });
-
-  lyr.bindPopup(html);
-}
+          lyr.bindPopup(html);
+        }
       });
 
       loadedLayers[id] = layer;
@@ -702,6 +541,14 @@ function polygonPerimeter(latlngs){
 function centerOf(latlngs){
   let lat = 0, lng = 0;
   latlngs.forEach(p => { lat += p.lat; lng += p.lng; });
+  return L.latLng(lat / latlngs.length, lng / lngs.length);
+}
+</script>
+
+<script>
+function centerOf(latlngs){
+  let lat = 0, lng = 0;
+  latlngs.forEach(p => { lat += p.lat; lng += p.lng; });
   return L.latLng(lat / latlngs.length, lng / latlngs.length);
 }
 
@@ -757,37 +604,25 @@ map.on(L.Draw.Event.CREATED, function(e){
 
 L.control.scale({position:'bottomleft'}).addTo(map);
 
-function normalizeText(v){
-  return String(v ?? "")
-    .replace(/[\u200E\u200F\u202A-\u202E]/g, "")
-    .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d))
-    .replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
-    .trim();
-}
-
-function isIgnoredKey(k){
-  const key = normalizeText(k).toLowerCase();
-  return (
-    key === "objectid" ||
-    key === "fid" ||
-    key === "oid" ||
-    key.includes("shape") ||
-    key.includes("area") ||
-    key.includes("length")
-  );
-}
-
 function searchPlot(){
-  const q = normalizeText(document.getElementById("plotSearch").value);
+  const q = normalizeSearchValue(document.getElementById("plotSearch").value);
   if(!q) return;
 
   let found = null;
 
   allFeatureLayers.forEach(item=>{
     item.layer.eachLayer(lyr=>{
-      if(normalizeText(lyr._plotNo) === q){
-        found = {layer:lyr, cfg:item.cfg};
-      }
+      const props = lyr.feature?.properties || {};
+
+      Object.keys(props).forEach(k=>{
+        if(isIgnoredSearchKey(k)) return;
+
+        const val = normalizeSearchValue(props[k]);
+
+        if(val === q){
+          found = {layer:lyr, cfg:item.cfg};
+        }
+      });
     });
   });
 
@@ -810,10 +645,13 @@ function searchPlot(){
     }
   }).addTo(map);
 
-  map.fitBounds(found.layer.getBounds(), {padding:[40,40], maxZoom:20});
+  if(found.layer.getBounds){
+    map.fitBounds(found.layer.getBounds(), {padding:[40,40], maxZoom:20});
+  }
+
   found.layer.openPopup();
 }
-  
+
 function addManualMarker(){
   const lat = parseFloat(document.getElementById("manualLat").value);
   const lon = parseFloat(document.getElementById("manualLon").value);
