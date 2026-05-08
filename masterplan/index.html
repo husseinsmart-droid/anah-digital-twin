@@ -232,6 +232,18 @@ html,body{
     height:34px !important;
   }
 }
+  .coord-label{
+  background:rgba(15,23,42,.82);
+  color:#fff;
+  padding:3px 6px;
+  border-radius:7px;
+  font-size:10px;
+  line-height:1.2;
+  white-space:nowrap;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);
+  text-align:center;
+  pointer-events:none;
+}
 </style>
 </head>
 
@@ -592,14 +604,10 @@ map.on(L.Draw.Event.CREATED, function(e){
   }
 
   if(e.layerType === "marker"){
-    const p = layer.getLatLng();
-
-    L.marker(p,{
-      icon:measureLabelIcon(
-        p.lat.toFixed(6) + "<br>" + p.lng.toFixed(6)
-      )
-    }).addTo(drawnItems);
-  }
+  drawnItems.removeLayer(layer);
+  const p = layer.getLatLng();
+  addEditableCoordinateMarker(p.lat, p.lng);
+}
 });
 
 L.control.scale({position:'bottomleft'}).addTo(map);
@@ -651,7 +659,39 @@ function searchPlot(){
 
   found.layer.openPopup();
 }
+function addEditableCoordinateMarker(lat, lon){
+  const p = L.latLng(lat, lon);
 
+  const marker = L.marker(p, {
+    draggable:true
+  });
+
+  const label = L.marker(p, {
+    interactive:false,
+    icon:L.divIcon({
+      className:"coord-label",
+      html:lat.toFixed(6) + "<br>" + lon.toFixed(6),
+      iconSize:null,
+      iconAnchor:[35,38]
+    })
+  });
+
+  const group = L.layerGroup([marker, label]);
+
+  marker.on("drag", function(e){
+    const np = e.target.getLatLng();
+    label.setLatLng(np);
+    label.setIcon(L.divIcon({
+      className:"coord-label",
+      html:np.lat.toFixed(6) + "<br>" + np.lng.toFixed(6),
+      iconSize:null,
+      iconAnchor:[35,38]
+    }));
+  });
+
+  drawnItems.addLayer(group);
+  map.setView(p, 18);
+}
 function addManualMarker(){
   const lat = parseFloat(document.getElementById("manualLat").value);
   const lon = parseFloat(document.getElementById("manualLon").value);
@@ -661,21 +701,7 @@ function addManualMarker(){
     return;
   }
 
-  if(searchMarker){
-    map.removeLayer(searchMarker);
-  }
-
-  const p = L.latLng(lat, lon);
-
-  searchMarker = L.marker(p).addTo(map);
-
-  L.marker(p,{
-    icon:measureLabelIcon(
-      lat.toFixed(6) + "<br>" + lon.toFixed(6)
-    )
-  }).addTo(map);
-
-  map.setView(p, 18);
+  addEditableCoordinateMarker(lat, lon);
 }
 </script>
 
