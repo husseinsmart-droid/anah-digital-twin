@@ -553,16 +553,26 @@ function lineLength(latlngs){
 }
 
 function polygonArea(latlngs){
+  const points = latlngs;
+  const earthRadius = 6378137;
   let area = 0;
 
-  const pts = latlngs.map(p => map.latLngToLayerPoint(p));
+  if(points.length > 2){
+    for(let i = 0; i < points.length; i++){
+      const p1 = points[i];
+      const p2 = points[(i + 1) % points.length];
 
-  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
-    area += (pts[j].x + pts[i].x) * (pts[j].y - pts[i].y);
+      area += (
+        (p2.lng - p1.lng) * Math.PI / 180
+      ) * (
+        2 + Math.sin(p1.lat * Math.PI / 180) + Math.sin(p2.lat * Math.PI / 180)
+      );
+    }
+
+    area = area * earthRadius * earthRadius / 2;
   }
 
-  return Math.abs(area / 2) *
-    Math.pow(40075016.686 / (256 * Math.pow(2, map.getZoom())), 2);
+  return Math.abs(area);
 }
 
 function polygonPerimeter(latlngs){
