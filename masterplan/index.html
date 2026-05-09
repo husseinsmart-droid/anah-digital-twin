@@ -81,24 +81,6 @@ html,body{
   font-size:13px;
 }
 
-.search-toggle{
-  position:absolute;
-  top:235px;
-  left:10px;
-  z-index:1000;
-  width:34px;
-  height:34px;
-  border:1px solid #aaa;
-  background:white;
-  border-radius:4px;
-  box-shadow:0 1px 5px rgba(0,0,0,.25);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-  font-size:20px;
-}
-
 .search-panel{
   position:absolute;
   top:82px;
@@ -321,8 +303,6 @@ html,body{
 </div>
 
 <div class="coords" id="coords">Lat: -- | Lon: --</div>
-
-<div class="search-toggle" onclick="toggleSearchPanel()">🔍</div>
 
 <div class="search-panel" id="searchPanel">
   <button class="close-search" onclick="toggleSearchPanel()">×</button>
@@ -554,30 +534,35 @@ map.on("mousemove", e=>{
 const drawnItems = new L.FeatureGroup();
 map.addLayer(drawnItems);
 
-const measureLabelIcon = (text) => L.divIcon({
-  className: "measure-label",
-  html: text,
-  iconSize: null
-});
+function formatM(v){
+  return Math.round(v) + " m";
+}
 
-function formatM(v){return Math.round(v) + " m";}
-function formatM2(v){return Math.round(v) + " m²";}
+function formatM2(v){
+  return Math.round(v) + " m²";
+}
 
 function lineLength(latlngs){
   let total = 0;
+
   for(let i=1;i<latlngs.length;i++){
     total += latlngs[i-1].distanceTo(latlngs[i]);
   }
+
   return total;
 }
 
 function polygonArea(latlngs){
   let area = 0;
+
   const pts = latlngs.map(p => map.latLngToLayerPoint(p));
+
   for(let i=0,j=pts.length-1;i<pts.length;j=i++){
     area += (pts[j].x + pts[i].x) * (pts[j].y - pts[i].y);
   }
-  return Math.abs(area / 2) * Math.pow(40075016.686 / (256 * Math.pow(2, map.getZoom())), 2);
+
+  return Math.abs(area / 2) *
+    Math.pow(40075016.686 / (256 * Math.pow(2, map.getZoom())), 2);
 }
 
 function polygonPerimeter(latlngs){
@@ -587,40 +572,114 @@ function polygonPerimeter(latlngs){
 }
 
 function centerOf(latlngs){
-  let lat = 0, lng = 0;
-  latlngs.forEach(p => { lat += p.lat; lng += p.lng; });
-  return L.latLng(lat / latlngs.length, lng / latlngs.length);
+  let lat = 0;
+  let lng = 0;
+
+  latlngs.forEach(p=>{
+    lat += p.lat;
+    lng += p.lng;
+  });
+
+  return L.latLng(
+    lat / latlngs.length,
+    lng / latlngs.length
+  );
+}
+
+const measureLabelIcon = (text)=>L.divIcon({
+  className:"measure-label",
+  html:text,
+  iconSize:null
+});
+
+function removeMeasure(layer){
+  if(layer._measureLabel){
+    map.removeLayer(layer._measureLabel);
+    layer._measureLabel = null;
+  }
+}
+
+function updateMeasure(layer){
+
+  removeMeasure(layer);
+
+  if(layer instanceof L.Polyline && !(layer instanceof L.Polygon)){
+
+    const pts = layer.getLatLngs();
+
+    const len = lineLength(pts);
+
+    const mid = pts[Math.floor(pts.length / 2)];
+
+    layer._measureLabel = L.marker(mid,{
+      icon:measureLabelIcon(formatM(len)),
+      interactive:false
+    }).addTo(map);
+  }
+
+  if(layer instanceof L.Polygon){
+
+    const pts = layer.getLatLngs()[0];
+
+    const area = polygonArea(pts);
+
+    const perimeter = polygonPerimeter(pts);
+
+    const center = centerOf(pts);
+
+    layer._measureLabel = L.marker(center,{
+      icon:measureLabelIcon(
+        formatM2(area) + "<br>" + formatM(perimeter)
+      ),
+      interactive:false
+    }).addTo(map);
+  }
 }
 
 function bindCoordinateTooltip(marker){
+
   const p = marker.getLatLng();
+
   marker.bindTooltip(
     p.lat.toFixed(6) + "<br>" + p.lng.toFixed(6),
     {
       permanent:true,
       direction:"top",
-      offset:[0,-32],
-      className:"coord-tooltip",
-      opacity:1
+      offset:[0,-35],
+      className:"coord-tooltip"
     }
   );
 
   marker.on("drag", function(e){
+
     const np = e.target.getLatLng();
-    e.target.setTooltipContent(np.lat.toFixed(6) + "<br>" + np.lng.toFixed(6));
+
+    e.target.setTooltipContent(
+      np.lat.toFixed(6) + "<br>" + np.lng.toFixed(6)
+    );
   });
 }
 
 function addEditableCoordinateMarker(lat, lon){
-  const marker = L.marker([lat, lon], {draggable:true});
+
+  const marker = L.marker([lat, lon], {
+    draggable:true
+  });
+
   bindCoordinateTooltip(marker);
+
   drawnItems.addLayer(marker);
+
   map.setView([lat, lon], 18);
 }
 
 const drawControl = new L.Control.Draw({
   position:'topleft',
-  edit:{featureGroup:drawnItems},
+
+  edit:{
+    featureGroup:drawnItems
+  },
+
   draw:{
     polygon:true,
     polyline:true,
@@ -630,33 +689,103 @@ const drawControl = new L.Control.Draw({
     marker:true
   }
 });
+
 map.addControl(drawControl);
 
 map.on(L.Draw.Event.CREATED, function(e){
+
   const layer = e.layer;
 
+  drawnItems.addLayer(layer);
+
   if(e.layerType === "polyline"){
-    drawnItems.addLayer(layer);
-    const pts = layer.getLatLngs();
-    const len = lineLength(pts);
-    const mid = pts[Math.floor(pts.length / 2)];
-    L.marker(mid,{icon:measureLabelIcon(formatM(len))}).addTo(map);
+    updateMeasure(layer);
   }
 
   if(e.layerType === "polygon"){
-    drawnItems.addLayer(layer);
-    const pts = layer.getLatLngs()[0];
-    const area = polygonArea(pts);
-    const perimeter = polygonPerimeter(pts);
-    const center = centerOf(pts);
-    L.marker(center,{icon:measureLabelIcon(formatM2(area) + "<br>" + formatM(perimeter))}).addTo(map);
+    updateMeasure(layer);
   }
 
   if(e.layerType === "marker"){
+
+    drawnItems.removeLayer(layer);
+
     const p = layer.getLatLng();
+
     addEditableCoordinateMarker(p.lat, p.lng);
   }
 });
+
+map.on('draw:edited', function(e){
+
+  e.layers.eachLayer(function(layer){
+
+    if(layer instanceof L.Polygon ||
+       (layer instanceof L.Polyline && !(layer instanceof L.Polygon))){
+
+      updateMeasure(layer);
+    }
+
+    if(layer instanceof L.Marker){
+
+      const p = layer.getLatLng();
+
+      layer.setTooltipContent(
+        p.lat.toFixed(6) + "<br>" + p.lng.toFixed(6)
+      );
+    }
+  });
+});
+
+map.on('draw:deleted', function(e){
+
+  e.layers.eachLayer(function(layer){
+
+    removeMeasure(layer);
+  });
+});
+
+
+// ===== SEARCH BUTTON AS LEAFLET CONTROL =====
+
+const SearchControl = L.Control.extend({
+
+  options:{
+    position:'topleft'
+  },
+
+  onAdd:function(){
+
+    const div = L.DomUtil.create('div','leaflet-bar leaflet-control');
+
+    div.innerHTML = `
+      <a href="#" 
+         title="Search"
+         style="
+           width:34px;
+           height:34px;
+           line-height:34px;
+           text-align:center;
+           font-size:18px;
+           display:block;
+           text-decoration:none;
+           color:#111;
+           background:#fff;
+         ">🔍</a>
+    `;
+
+    div.onclick = function(e){
+
+      e.preventDefault();
+
+      toggleSearchPanel();
+    };
+
+    return div;
+  }
+});
+
+map.addControl(new SearchControl());
 
 L.control.scale({position:'bottomleft'}).addTo(map);
 
