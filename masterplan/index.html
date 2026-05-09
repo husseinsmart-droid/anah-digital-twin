@@ -154,10 +154,23 @@ function ensureSvgPatterns(){
   const defs = document.createElementNS("http://www.w3.org/2000/svg","defs");
 
   defs.innerHTML = `
-    <pattern id="pattern-proposed-residential" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
-      <rect width="8" height="8" fill","#d9b97a"/>
-      <line x1="0" y1="0" x2="0" y2="8" stroke="#ffd400" stroke-width="3"/>
-    </pattern>
+<pattern id="pattern-proposed-residential"
+         patternUnits="userSpaceOnUse"
+         width="10"
+         height="10"
+         patternTransform="rotate(45)">
+
+  <rect width="10"
+        height="10"
+        fill="#d9b97a"/>
+
+  <line x1="0"
+        y1="0"
+        x2="0"
+        y2="10"
+        stroke="#ffd400"
+        stroke-width="4"/>
+</pattern>
 
     <pattern id="pattern-proposed-commercial" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
       <rect width="8" height="8" fill="#ffd6d6"/>
