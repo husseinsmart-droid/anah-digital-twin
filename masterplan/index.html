@@ -170,6 +170,50 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans
 
 <script>
 const map = L.map('map',{zoomControl:true,maxZoom:22}).setView([34.369,41.981],13);
+function addSvgPatterns(){
+
+  setTimeout(()=>{
+
+    const svg = document.querySelector(".leaflet-overlay-pane svg");
+
+    if(!svg || svg.querySelector("#pattern-proposed-residential")) return;
+
+    const defs = document.createElementNS("http://www.w3.org/2000/svg","defs");
+
+    defs.innerHTML = `
+
+      <pattern id="pattern-proposed-residential"
+               patternUnits="userSpaceOnUse"
+               width="8"
+               height="8"
+               patternTransform="rotate(45)">
+
+        <line x1="0" y1="0"
+              x2="0" y2="8"
+              stroke="#ffd400"
+              stroke-width="3"/>
+
+      </pattern>
+
+      <pattern id="pattern-proposed-commercial"
+               patternUnits="userSpaceOnUse"
+               width="8"
+               height="8"
+               patternTransform="rotate(45)">
+
+        <line x1="0" y1="0"
+              x2="0" y2="8"
+              stroke="#ff0000"
+              stroke-width="3"/>
+
+      </pattern>
+
+    `;
+
+    svg.prepend(defs);
+
+  },500);
+}  
 
 const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,attribution:'© OpenStreetMap'});
 const esriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:22,maxNativeZoom:18,attribution:'Tiles © Esri'});
@@ -271,32 +315,33 @@ layersConfig.forEach((cfg,i)=>{
       const layer=L.geoJSON(data,{
 style: function(feature){
 
-  const styleObj = {
-    color: cfg.color,
-    weight: cfg.weight,
-    fillColor: cfg.fill,
-    fillOpacity: cfg.opacity,
-    opacity: 1
-  };
-
-  // Proposed Residential
   if(cfg.name === "Proposed Residential"){
-    styleObj.fillPattern = null;
-    styleObj.dashArray = "6 6";
-    styleObj.color = "#ffd400";
-    styleObj.fillColor = "#ffd27a";
-    styleObj.weight = 2;
+    return {
+      color:"#b36b00",
+      weight:1,
+      fillColor:"url(#pattern-proposed-residential)",
+      fillOpacity:1,
+      opacity:1
+    };
   }
 
-  // Proposed Commercial
   if(cfg.name === "Proposed Commercial"){
-    styleObj.dashArray = "6 6";
-    styleObj.color = "#ff0000";
-    styleObj.fillColor = "#ffd6d6";
-    styleObj.weight = 2;
+    return {
+      color:"#b10000",
+      weight:1,
+      fillColor:"url(#pattern-proposed-commercial)",
+      fillOpacity:1,
+      opacity:1
+    };
   }
 
-  return styleObj;
+  return {
+    color:cfg.color,
+    weight:cfg.weight,
+    fillColor:cfg.fill,
+    fillOpacity:cfg.opacity,
+    opacity:1
+  };
 },
         onEachFeature:function(feature,lyr){
           const props=feature.properties||{};
@@ -322,10 +367,14 @@ style: function(feature){
         else{map.removeLayer(layer);}
       });
 
-      if(Object.keys(loadedLayers).length===layersConfig.length){
-        map.fitBounds(boundsGroup.getBounds(),{padding:[30,30]});
-        bringImportantLayersToFront();
-      }
+if(Object.keys(loadedLayers).length===layersConfig.length){
+
+  addSvgPatterns();
+
+  map.fitBounds(boundsGroup.getBounds(), {padding:[30,30]});
+
+  bringImportantLayersToFront();
+}
     });
 });
 
@@ -433,6 +482,7 @@ const drawControl=new L.Control.Draw({
   draw:{polygon:true,polyline:true,rectangle:false,circle:false,circlemarker:false,marker:true}
 });
 map.addControl(drawControl);
+addSvgPatterns();  
 
 map.on(L.Draw.Event.CREATED,function(e){
   const layer=e.layer;
