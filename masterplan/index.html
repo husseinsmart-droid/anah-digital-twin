@@ -21,20 +21,10 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans
 .title span{display:block;font-size:12px;color:#cbd5e1;}
 
 .panel{
-  position:absolute;
-  top:64px;
-  right:14px;
-  z-index:1000;
-  width:max-content;
-  min-width:185px;
-  max-width:245px;
-  max-height:80vh;
-  overflow:auto;
-  background:rgba(255,255,255,.94);
-  backdrop-filter:blur(12px);
-  border-radius:16px;
-  box-shadow:0 8px 28px rgba(0,0,0,.28);
-  padding:10px 12px;
+  position:absolute;top:64px;right:14px;z-index:1000;
+  width:max-content;min-width:185px;max-width:245px;max-height:80vh;
+  overflow:auto;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);
+  border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.28);padding:10px 12px;
 }
 .panel h2{margin:0 0 4px;font-size:18px;color:#0f172a;}
 .panel small{color:#64748b;}
@@ -77,9 +67,12 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans
 
 .leaflet-tooltip.coord-tooltip{
   background:rgba(15,23,42,.86);color:#fff;border:0;border-radius:7px;
-  box-shadow:0 2px 8px rgba(0,0,0,.25);font-size:10px;line-height:1.25;padding:3px 6px;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);font-size:9px;line-height:1.25;padding:2px 5px;
 }
 .leaflet-tooltip.coord-tooltip:before{display:none;}
+
+.proposed-residential{fill:url(#pattern-proposed-residential) !important;}
+.proposed-commercial{fill:url(#pattern-proposed-commercial) !important;}
 
 @media(max-width:700px){
   .title{
@@ -95,28 +88,11 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans
   .search-panel button.main-btn{padding:6px;font-size:11px;}
   .coord-row{grid-template-columns:1fr 1fr 48px;gap:4px;}
 
-  .leaflet-marker-icon{
-  transform-origin:bottom center;
-}
-
-.leaflet-tooltip.coord-tooltip{
-  margin-top:10px;
-  font-size:9px;
-  padding:2px 5px;
-}
-.panel{
-  width:calc(100% - 16px);
-  min-width:0;
-  max-width:none;
-  left:8px;
-  right:8px;
-  top:auto;
-  bottom:8px;
-  max-height:18vh;
-  padding:6px 8px;
-  border-radius:14px;
-  overflow:auto;
-}
+  .panel{
+    width:calc(100% - 16px);min-width:0;max-width:none;
+    left:8px;right:8px;top:auto;bottom:8px;
+    max-height:18vh;padding:6px 8px;border-radius:14px;overflow:auto;
+  }
   .panel h2{font-size:11px;margin:0;line-height:1.1;}
   .panel small{display:none;}
 
@@ -170,44 +146,35 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans
 
 <script>
 const map = L.map('map',{zoomControl:true,maxZoom:22}).setView([34.369,41.981],13);
-function addSvgPatterns(){
-  setTimeout(()=>{
-    document.querySelectorAll("path.leaflet-interactive").forEach(path=>{
-      const fill = path.getAttribute("fill");
 
-      if(fill === "proposed-residential"){
-        path.setAttribute("fill", "url(#pattern-proposed-residential)");
-      }
+function ensureSvgPatterns(){
+  const svg = document.querySelector(".leaflet-overlay-pane svg");
+  if(!svg || svg.querySelector("#pattern-proposed-residential")) return;
 
-      if(fill === "proposed-commercial"){
-        path.setAttribute("fill", "url(#pattern-proposed-commercial)");
-      }
-    });
+  const defs = document.createElementNS("http://www.w3.org/2000/svg","defs");
 
-    const svg = document.querySelector(".leaflet-overlay-pane svg");
-    if(!svg) return;
+  defs.innerHTML = `
+    <pattern id="pattern-proposed-residential" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+      <rect width="8" height="8" fill="#ffd27a"/>
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#ffd400" stroke-width="3"/>
+    </pattern>
 
-    if(!svg.querySelector("#pattern-proposed-residential")){
-      const defs = document.createElementNS("http://www.w3.org/2000/svg","defs");
+    <pattern id="pattern-proposed-commercial" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+      <rect width="8" height="8" fill="#ffd6d6"/>
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#ff0000" stroke-width="3"/>
+    </pattern>
+  `;
 
-      defs.innerHTML = `
-        <pattern id="pattern-proposed-residential" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
-          <rect width="8" height="8" fill="#ffd27a"/>
-          <line x1="0" y1="0" x2="0" y2="8" stroke="#ffd400" stroke-width="3"/>
-        </pattern>
-
-        <pattern id="pattern-proposed-commercial" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
-          <rect width="8" height="8" fill="#ffd6d6"/>
-          <line x1="0" y1="0" x2="0" y2="8" stroke="#ff0000" stroke-width="3"/>
-        </pattern>
-      `;
-
-      svg.prepend(defs);
-    }
-  },700);
+  svg.prepend(defs);
 }
+
 const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,attribution:'© OpenStreetMap'});
-const esriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:22,maxNativeZoom:18,attribution:'Tiles © Esri'});
+
+const esriImagery = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  {maxZoom:22,maxNativeZoom:18,attribution:'Tiles © Esri'}
+);
+
 const esriHybrid = L.layerGroup([
   esriImagery,
   L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:22})
@@ -215,7 +182,9 @@ const esriHybrid = L.layerGroup([
 
 L.control.layers({"Satellite":esriHybrid,"Imagery":esriImagery,"OpenStreetMap":osm},null,{position:'topright'}).addTo(map);
 
-function toggleSearchPanel(){document.getElementById("searchPanel").classList.toggle("show");}
+function toggleSearchPanel(){
+  document.getElementById("searchPanel").classList.toggle("show");
+}
 
 const SearchControl=L.Control.extend({
   options:{position:'topleft'},
@@ -269,10 +238,10 @@ function isIgnoredSearchKey(k){
 const layersConfig=[
   {name:"Master Plan Boundary",file:"master plan boundary.geojson",color:"#ff3b3b",fill:"#ffffff",opacity:0.02,weight:3,checked:true},
   {name:"Residential",file:"Residential.geojson",color:"#9a9a00",fill:"#ffff00",opacity:0.72,weight:0.7,checked:true},
-  {name:"Proposed Residential",file:"Proposed_Residential.geojson",color:"#d99000",fill:"#ffd27a",opacity:0.72,weight:1,checked:true},
+  {name:"Proposed Residential",file:"Proposed_Residential.geojson",color:"#b36b00",fill:"#ffd27a",opacity:1,weight:1,checked:true,className:"proposed-residential"},
   {name:"Vertical Residential",file:"Vertical_Residential.geojson",color:"#5e0000",fill:"#8b0000",opacity:0.82,weight:1,checked:true},
   {name:"Commercial",file:"Commercial.geojson",color:"#b10000",fill:"#ff0000",opacity:0.82,weight:1,checked:true},
-  {name:"Proposed Commercial",file:"Proposed_Commercial.geojson",color:"#ff0000",fill:"#ffd6d6",opacity:0.45,weight:1.2,checked:true},
+  {name:"Proposed Commercial",file:"Proposed_Commercial.geojson",color:"#b10000",fill:"#ffd6d6",opacity:1,weight:1,checked:true,className:"proposed-commercial"},
   {name:"Industrial",file:"Industrial.geojson",color:"#6f00b5",fill:"#a000ff",opacity:0.78,weight:1,checked:true},
   {name:"Public Use",file:"PublicUse.geojson",color:"#6b8ea3",fill:"#c7ddeb",opacity:0.82,weight:1,checked:true},
   {name:"Educational",file:"Educational.geojson",color:"#003d99",fill:"#0057c2",opacity:0.85,weight:1,checked:true},
@@ -303,37 +272,19 @@ layersConfig.forEach((cfg,i)=>{
   fetch("./geojson/"+cfg.file)
     .then(r=>{if(!r.ok) throw new Error(cfg.file+" not found"); return r.json();})
     .then(data=>{
+      ensureSvgPatterns();
+
       const layer=L.geoJSON(data,{
-style: function(feature){
-
-if(cfg.name === "Proposed Residential"){
-  return {
-    color:"#b36b00",
-    weight:1,
-    fillColor:"proposed-residential",
-    fillOpacity:1,
-    opacity:1
-  };
-}
-
-if(cfg.name === "Proposed Commercial"){
-  return {
-    color:"#b10000",
-    weight:1,
-    fillColor:"proposed-commercial",
-    fillOpacity:1,
-    opacity:1
-  };
-}
-
-  return {
-    color:cfg.color,
-    weight:cfg.weight,
-    fillColor:cfg.fill,
-    fillOpacity:cfg.opacity,
-    opacity:1
-  };
-},
+        style:function(){
+          return {
+            color:cfg.color,
+            weight:cfg.weight,
+            fillColor:cfg.fill,
+            fillOpacity:cfg.opacity,
+            opacity:1,
+            className:cfg.className || ""
+          };
+        },
         onEachFeature:function(feature,lyr){
           const props=feature.properties||{};
           let html=`<b>${cfg.name}</b><hr>`;
@@ -358,14 +309,11 @@ if(cfg.name === "Proposed Commercial"){
         else{map.removeLayer(layer);}
       });
 
-if(Object.keys(loadedLayers).length===layersConfig.length){
-
-  addSvgPatterns();
-
-  map.fitBounds(boundsGroup.getBounds(), {padding:[30,30]});
-
-  bringImportantLayersToFront();
-}
+      if(Object.keys(loadedLayers).length===layersConfig.length){
+        ensureSvgPatterns();
+        map.fitBounds(boundsGroup.getBounds(),{padding:[30,30]});
+        bringImportantLayersToFront();
+      }
     });
 });
 
@@ -473,7 +421,6 @@ const drawControl=new L.Control.Draw({
   draw:{polygon:true,polyline:true,rectangle:false,circle:false,circlemarker:false,marker:true}
 });
 map.addControl(drawControl);
-addSvgPatterns();  
 
 map.on(L.Draw.Event.CREATED,function(e){
   const layer=e.layer;
