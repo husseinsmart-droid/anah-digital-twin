@@ -21,10 +21,20 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans
 .title span{display:block;font-size:12px;color:#cbd5e1;}
 
 .panel{
-  position:absolute;top:14px;right:14px;z-index:1000;width:285px;
-  max-height:88vh;overflow:auto;background:rgba(255,255,255,.94);
-  backdrop-filter:blur(12px);border-radius:16px;
-  box-shadow:0 8px 28px rgba(0,0,0,.28);padding:14px;
+  position:absolute;
+  top:64px;
+  right:14px;
+  z-index:1000;
+  width:max-content;
+  min-width:185px;
+  max-width:245px;
+  max-height:80vh;
+  overflow:auto;
+  background:rgba(255,255,255,.94);
+  backdrop-filter:blur(12px);
+  border-radius:16px;
+  box-shadow:0 8px 28px rgba(0,0,0,.28);
+  padding:10px 12px;
 }
 .panel h2{margin:0 0 4px;font-size:18px;color:#0f172a;}
 .panel small{color:#64748b;}
@@ -85,6 +95,15 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans
   .search-panel button.main-btn{padding:6px;font-size:11px;}
   .coord-row{grid-template-columns:1fr 1fr 48px;gap:4px;}
 
+  .leaflet-marker-icon{
+  transform-origin:bottom center;
+}
+
+.leaflet-tooltip.coord-tooltip{
+  margin-top:10px;
+  font-size:9px;
+  padding:2px 5px;
+}
   .panel{
     width:calc(100% - 16px);left:8px;right:8px;top:auto;bottom:8px;
     max-height:18vh;padding:6px 8px;border-radius:14px;overflow:auto;
@@ -117,7 +136,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans
 </div>
 
 <div class="panel">
-  <h2>Layers Control</h2>
+  <h2>Land Use</h2>
   <small>Turn layers on / off</small>
   <div id="layerList"></div>
 </div>
@@ -359,7 +378,7 @@ function updateMeasure(layer){
 function bindCoordinateTooltip(marker){
   const p=marker.getLatLng();
   marker.bindTooltip(p.lat.toFixed(6)+"<br>"+p.lng.toFixed(6),{
-    permanent:true,direction:"top",offset:[0,-35],className:"coord-tooltip",opacity:1
+    permanent:true,direction:"top",offset:[0,-15],className:"coord-tooltip",opacity:1
   });
   marker.on("drag",function(e){
     const np=e.target.getLatLng();
