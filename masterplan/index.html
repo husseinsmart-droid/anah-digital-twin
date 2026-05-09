@@ -171,50 +171,41 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans
 <script>
 const map = L.map('map',{zoomControl:true,maxZoom:22}).setView([34.369,41.981],13);
 function addSvgPatterns(){
-
   setTimeout(()=>{
+    document.querySelectorAll("path.leaflet-interactive").forEach(path=>{
+      const fill = path.getAttribute("fill");
+
+      if(fill === "proposed-residential"){
+        path.setAttribute("fill", "url(#pattern-proposed-residential)");
+      }
+
+      if(fill === "proposed-commercial"){
+        path.setAttribute("fill", "url(#pattern-proposed-commercial)");
+      }
+    });
 
     const svg = document.querySelector(".leaflet-overlay-pane svg");
+    if(!svg) return;
 
-    if(!svg || svg.querySelector("#pattern-proposed-residential")) return;
+    if(!svg.querySelector("#pattern-proposed-residential")){
+      const defs = document.createElementNS("http://www.w3.org/2000/svg","defs");
 
-    const defs = document.createElementNS("http://www.w3.org/2000/svg","defs");
+      defs.innerHTML = `
+        <pattern id="pattern-proposed-residential" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+          <rect width="8" height="8" fill="#ffd27a"/>
+          <line x1="0" y1="0" x2="0" y2="8" stroke="#ffd400" stroke-width="3"/>
+        </pattern>
 
-    defs.innerHTML = `
+        <pattern id="pattern-proposed-commercial" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+          <rect width="8" height="8" fill="#ffd6d6"/>
+          <line x1="0" y1="0" x2="0" y2="8" stroke="#ff0000" stroke-width="3"/>
+        </pattern>
+      `;
 
-      <pattern id="pattern-proposed-residential"
-               patternUnits="userSpaceOnUse"
-               width="8"
-               height="8"
-               patternTransform="rotate(45)">
-
-        <line x1="0" y1="0"
-              x2="0" y2="8"
-              stroke="#ffd400"
-              stroke-width="3"/>
-
-      </pattern>
-
-      <pattern id="pattern-proposed-commercial"
-               patternUnits="userSpaceOnUse"
-               width="8"
-               height="8"
-               patternTransform="rotate(45)">
-
-        <line x1="0" y1="0"
-              x2="0" y2="8"
-              stroke="#ff0000"
-              stroke-width="3"/>
-
-      </pattern>
-
-    `;
-
-    svg.prepend(defs);
-
-  },500);
-}  
-
+      svg.prepend(defs);
+    }
+  },700);
+}
 const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,attribution:'© OpenStreetMap'});
 const esriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:22,maxNativeZoom:18,attribution:'Tiles © Esri'});
 const esriHybrid = L.layerGroup([
@@ -315,25 +306,25 @@ layersConfig.forEach((cfg,i)=>{
       const layer=L.geoJSON(data,{
 style: function(feature){
 
-  if(cfg.name === "Proposed Residential"){
-    return {
-      color:"#b36b00",
-      weight:1,
-      fillColor:"url(#pattern-proposed-residential)",
-      fillOpacity:1,
-      opacity:1
-    };
-  }
+if(cfg.name === "Proposed Residential"){
+  return {
+    color:"#b36b00",
+    weight:1,
+    fillColor:"proposed-residential",
+    fillOpacity:1,
+    opacity:1
+  };
+}
 
-  if(cfg.name === "Proposed Commercial"){
-    return {
-      color:"#b10000",
-      weight:1,
-      fillColor:"url(#pattern-proposed-commercial)",
-      fillOpacity:1,
-      opacity:1
-    };
-  }
+if(cfg.name === "Proposed Commercial"){
+  return {
+    color:"#b10000",
+    weight:1,
+    fillColor:"proposed-commercial",
+    fillOpacity:1,
+    opacity:1
+  };
+}
 
   return {
     color:cfg.color,
